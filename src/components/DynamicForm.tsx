@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Check, ChevronsUpDown, Calendar as CalendarIcon, CloudUpload, Paperclip } from 'lucide-react'
+import { Check, ChevronsUpDown, Calendar as CalendarIcon, CloudUpload, Paperclip, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // UI Components
@@ -23,6 +23,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { MultiSelect } from '@/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { FileUploader, FileInput, FileUploaderContent, FileUploaderItem } from '@/components/ui/file-upload'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 // Custom Error Class
 export class DynamicFormSubmissionError extends Error {
@@ -55,9 +56,14 @@ export interface FormFieldConfig {
 
 export interface DynamicFormProps {
   config: FormFieldConfig[]
-  onSubmit: (values: Record<string, unknown>) => Promise<void> | void
+  onSubmit: (values: Record<string, unknown>) => Promise<void>
   defaultValues?: Record<string, unknown>
   schema?: z.ZodSchema
+  submitText?: string
+  loadingText?: string
+  submitButtonAlign?: 'full' | 'left' | 'right'
+  title?: string
+  description?: string
 }
 
 // Schema Generation
@@ -160,7 +166,7 @@ function InputField({ config, form }: { config: FormFieldConfig; form: FormType 
       <Label htmlFor={config.name}>{config.label}</Label>
       <div className="relative">
         {config.prefix && (
-          <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-l-md">
             {config.prefix}
           </span>
         )}
@@ -169,13 +175,13 @@ function InputField({ config, form }: { config: FormFieldConfig; form: FormType 
           type="text"
           placeholder={config.placeholder}
           className={cn(
-            config.prefix && "pl-8",
-            config.suffix && "pr-8"
+            config.prefix && "pl-16",
+            config.suffix && "pr-16"
           )}
           {...form.register(config.name)}
         />
         {config.suffix && (
-          <span className="absolute right-3 top-3 text-sm text-muted-foreground">
+          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-r-md">
             {config.suffix}
           </span>
         )}
@@ -196,7 +202,7 @@ function NumberField({ config, form }: { config: FormFieldConfig; form: FormType
       <Label htmlFor={config.name}>{config.label}</Label>
       <div className="relative">
         {config.prefix && (
-          <span className="absolute left-3 top-3 text-sm text-muted-foreground">
+          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-l-md">
             {config.prefix}
           </span>
         )}
@@ -205,13 +211,13 @@ function NumberField({ config, form }: { config: FormFieldConfig; form: FormType
           type="number"
           placeholder={config.placeholder}
           className={cn(
-            config.prefix && "pl-8",
-            config.suffix && "pr-8"
+            config.prefix && "pl-16",
+            config.suffix && "pr-16"
           )}
           {...form.register(config.name, { valueAsNumber: true })}
         />
         {config.suffix && (
-          <span className="absolute right-3 top-3 text-sm text-muted-foreground">
+          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-r-md">
             {config.suffix}
           </span>
         )}
@@ -547,8 +553,9 @@ function ComboboxField({ config, form }: { config: FormFieldConfig; form: FormTy
 }
 
 // Main Component
-export function DynamicForm({ config, onSubmit, defaultValues, schema }: DynamicFormProps) {
+export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', title, description }: DynamicFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Auto-generate schema if not provided
   const finalSchema = schema || generateSchemaFromConfig(config)
@@ -563,6 +570,7 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema }: Dynamic
   const handleSubmit = async (values: any) => {
     try {
       setFormError(null)
+      setIsSubmitting(true)
       await onSubmit(values as Record<string, unknown>)
       toast.success('Form submitted successfully!')
     } catch (error) {
@@ -584,28 +592,59 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema }: Dynamic
         setFormError('An unexpected error occurred. Please try again.')
       }
       toast.error('Form submission failed. Please check the errors below.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
   
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 max-w-2xl mx-auto py-6">
-      {/* Form-level error display */}
-      {formError && (
-        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-          <p className="text-sm text-destructive">{formError}</p>
-        </div>
+    <Card className="w-full">
+      {(title || description) && (
+        <CardHeader>
+          {title && <CardTitle>{title}</CardTitle>}
+          {description && <CardDescription>{description}</CardDescription>}
+        </CardHeader>
       )}
-      
-      {/* Render form fields */}
-      {config.map((field, index) => (
-        <div key={field.name || index}>
-          {renderField(field, form)}
-        </div>
-      ))}
-      
-      <Button type="submit" className="w-full">
-        Submit
-      </Button>
-    </form>
+      <CardContent>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          {/* Form-level error display */}
+          {formError && (
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive">{formError}</p>
+            </div>
+          )}
+          
+          {/* Render form fields */}
+          {config.map((field, index) => (
+            <div key={field.name || index}>
+              {renderField(field, form)}
+            </div>
+          ))}
+          
+          {/* Submit Button Container */}
+          <div className={cn(
+            "flex w-full",
+            submitButtonAlign === 'full' && "w-full",
+            submitButtonAlign === 'left' && "justify-start",
+            submitButtonAlign === 'right' && "justify-end"
+          )}>
+            <Button 
+              type="submit" 
+              className={`cursor-pointer ${submitButtonAlign === 'full' ? 'w-full' : ''}`}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {loadingText || 'Submitting...'}
+                </>
+              ) : (
+                submitText || 'Submit'
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

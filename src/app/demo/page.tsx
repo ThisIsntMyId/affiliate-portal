@@ -186,7 +186,7 @@ const demoConfig: FormFieldConfig[] = [
 ]
 
 export default function DemoPage() {
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
     console.log('🚀 DynamicForm Submit Handler Called!')
     console.log('📋 Form Values:', values)
     
@@ -198,17 +198,17 @@ export default function DemoPage() {
       throw new DynamicFormSubmissionError('Username "admin" is reserved', 'username')
     }
     
-    if (values.email && values.email.includes('test')) {
+    if (values.email && typeof values.email === 'string' && values.email.includes('test')) {
       console.log('❌ Throwing field error for email')
       throw new DynamicFormSubmissionError('Test emails are not allowed', 'email')
     }
     
-    if (values.price && values.price < 0) {
+    if (values.price && typeof values.price === 'number' && values.price < 0) {
       console.log('❌ Throwing form-level error for negative price')
       throw new DynamicFormSubmissionError('Price cannot be negative')
     }
     
-    if (values.age && values.age < 18) {
+    if (values.age && typeof values.age === 'number' && values.age < 18) {
       console.log('❌ Throwing multiple field errors for age validation')
       throw new DynamicFormSubmissionError('Multiple validation errors', {
         age: 'Must be at least 18 years old',
@@ -226,8 +226,8 @@ export default function DemoPage() {
     username: "john_doe",
     email: "john@example.com",
     age: 25,
-    price: 99.99,
-    weight: 2.5,
+    price: 99,
+    weight: 2,
     bio: "I'm a software developer passionate about building great user experiences.",
     country: "us",
     languages: ["js", "ts", "py"],
@@ -271,6 +271,11 @@ export default function DemoPage() {
           config={demoConfig}
           onSubmit={handleSubmit}
           defaultValues={defaultValues}
+          submitText="Save Profile"
+          loadingText="Saving Profile..."
+          submitButtonAlign="full"
+          title="User Profile Form"
+          description="Complete your profile information below. All fields marked with * are required."
         />
         
         <div className="mt-8 text-center text-sm text-muted-foreground">
@@ -278,6 +283,50 @@ export default function DemoPage() {
           <p className="mt-2">
             <strong>Test cases:</strong> Use "admin" as username, "test" in email, negative price, or age under 18
           </p>
+        </div>
+        
+        <div className="mt-12 border-t pt-8">
+          <h2 className="text-2xl font-bold text-center mb-6">Submit Button Alignment Examples</h2>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Full Width (Default)</h3>
+              <DynamicForm
+                config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
+                onSubmit={handleSubmit}
+                submitText="Submit Full Width"
+                loadingText="Submitting..."
+                submitButtonAlign="full"
+                title="Basic Information"
+                description="Enter your basic details below."
+              />
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Left Aligned</h3>
+              <DynamicForm
+                config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
+                onSubmit={handleSubmit}
+                submitText="Submit Left"
+                loadingText="Submitting..."
+                submitButtonAlign="left"
+                title="Contact Details"
+                description="Provide your contact information."
+              />
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Right Aligned</h3>
+              <DynamicForm
+                config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
+                onSubmit={handleSubmit}
+                submitText="Submit Right"
+                loadingText="Submitting..."
+                submitButtonAlign="right"
+                title="Personal Info"
+                description="Tell us about yourself."
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
