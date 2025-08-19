@@ -1,6 +1,7 @@
 "use client"
 
 import { DynamicForm, FormFieldConfig, DynamicFormSubmissionError } from '@/components/DynamicForm'
+import { DemoNavigation } from '@/components/demo-navigation'
 
 const demoConfig: FormFieldConfig[] = [
   // Basic Input Fields
@@ -266,8 +267,10 @@ export default function DemoPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <>
+      <DemoNavigation />
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">DynamicForm Demo</h1>
           <p className="text-lg text-muted-foreground mb-4">
@@ -357,5 +360,6 @@ export default function DemoPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

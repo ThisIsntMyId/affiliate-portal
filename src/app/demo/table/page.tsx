@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { DynamicTable, ColumnConfig, FilterConfig, EmptyStateConfig, TableAction } from '@/components/DynamicTable'
 import { Button } from '@/components/ui/button'
+import { DemoNavigation } from '@/components/demo-navigation'
 import { Plus, Edit, Trash, Eye } from 'lucide-react'
 
 // Sample data
@@ -432,13 +433,15 @@ export default function TableDemo() {
   ]
 
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">DynamicTable Demo</h1>
-        <p className="text-muted-foreground">
-          A comprehensive, configuration-driven table component with search, filtering, sorting, and pagination.
-        </p>
-      </div>
+    <>
+      <DemoNavigation />
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">DynamicTable Demo</h1>
+          <p className="text-muted-foreground">
+            A comprehensive, configuration-driven table component with search, filtering, sorting, and pagination.
+          </p>
+        </div>
 
       <DynamicTable
         data={data}
@@ -469,5 +472,6 @@ export default function TableDemo() {
         </ul>
       </div>
     </div>
+    </>
   )
 }
