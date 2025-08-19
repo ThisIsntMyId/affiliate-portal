@@ -40,7 +40,7 @@ export class DynamicFormSubmissionError extends Error {
 export interface FormFieldConfig {
   name: string
   label: string
-  type: 'input' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'switch' | 'date' | 'radio' | 'file' | 'combobox' | 'number' | 'email'
+  type: 'input' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'image' | 'combobox' | 'number' | 'email'
   required?: boolean
   placeholder?: string
   description?: string
@@ -95,6 +95,9 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
       case 'switch':
         fieldSchema = z.boolean()
         break
+      case 'checkboxgroup':
+        fieldSchema = z.array(z.string())
+        break
       case 'date':
         fieldSchema = z.coerce.date()
         break
@@ -102,6 +105,7 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
         fieldSchema = z.string()
         break
       case 'file':
+      case 'image':
         fieldSchema = field.fileConfig?.multiple ? z.array(z.instanceof(File)) : z.instanceof(File)
         break
       default:
@@ -145,6 +149,8 @@ function renderField(config: FormFieldConfig, form: FormType) {
       return <MultiSelectField config={config} form={form} />
     case 'checkbox':
       return <CheckboxField config={config} form={form} />
+    case 'checkboxgroup':
+      return <CheckboxGroupField config={config} form={form} />
     case 'switch':
       return <SwitchField config={config} form={form} />
     case 'date':
@@ -153,6 +159,8 @@ function renderField(config: FormFieldConfig, form: FormType) {
       return <RadioField config={config} form={form} />
     case 'file':
       return <FileField config={config} form={form} />
+    case 'image':
+      return <ImageField config={config} form={form} />
     case 'combobox':
       return <ComboboxField config={config} form={form} />
     default:
@@ -166,7 +174,7 @@ function InputField({ config, form }: { config: FormFieldConfig; form: FormType 
       <Label htmlFor={config.name}>{config.label}</Label>
       <div className="relative">
         {config.prefix && (
-          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-l-md">
+          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-2 rounded-l-md min-w-[2.5rem]">
             {config.prefix}
           </span>
         )}
@@ -175,13 +183,13 @@ function InputField({ config, form }: { config: FormFieldConfig; form: FormType 
           type="text"
           placeholder={config.placeholder}
           className={cn(
-            config.prefix && "pl-16",
-            config.suffix && "pr-16"
+            config.prefix && "pl-12",
+            config.suffix && "pr-12"
           )}
           {...form.register(config.name)}
         />
         {config.suffix && (
-          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-r-md">
+          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-2 rounded-r-md min-w-[2.5rem]">
             {config.suffix}
           </span>
         )}
@@ -202,7 +210,7 @@ function NumberField({ config, form }: { config: FormFieldConfig; form: FormType
       <Label htmlFor={config.name}>{config.label}</Label>
       <div className="relative">
         {config.prefix && (
-          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-l-md">
+          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-2 rounded-l-md min-w-[2.5rem]">
             {config.prefix}
           </span>
         )}
@@ -211,13 +219,13 @@ function NumberField({ config, form }: { config: FormFieldConfig; form: FormType
           type="number"
           placeholder={config.placeholder}
           className={cn(
-            config.prefix && "pl-16",
-            config.suffix && "pr-16"
+            config.prefix && "pl-12",
+            config.suffix && "pr-12"
           )}
           {...form.register(config.name, { valueAsNumber: true })}
         />
         {config.suffix && (
-          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-3 rounded-r-md">
+          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-2 rounded-r-md min-w-[2.5rem]">
             {config.suffix}
           </span>
         )}
@@ -338,6 +346,44 @@ function CheckboxField({ config, form }: { config: FormFieldConfig; form: FormTy
           <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
         )}
       </div>
+    </div>
+  )
+}
+
+function CheckboxGroupField({ config, form }: { config: FormFieldConfig; form: FormType }) {
+  const selectedValues = (form.watch(config.name) as string[]) || []
+  
+  const handleCheckboxChange = (value: string, checked: boolean) => {
+    if (checked) {
+      form.setValue(config.name, [...selectedValues, value])
+    } else {
+      form.setValue(config.name, selectedValues.filter(v => v !== value))
+    }
+  }
+  
+  return (
+    <div className="space-y-3">
+      <Label>{config.label}</Label>
+      <div className="space-y-2">
+        {config.options?.map((option, index) => (
+          <div key={index} className="flex items-center space-x-2">
+            <Checkbox
+              id={`${config.name}-${index}`}
+              checked={selectedValues.includes(option.value)}
+              onCheckedChange={(checked) => handleCheckboxChange(option.value, checked as boolean)}
+            />
+            <Label htmlFor={`${config.name}-${index}`} className="font-normal">
+              {option.label}
+            </Label>
+          </div>
+        ))}
+      </div>
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
+      )}
+      {form.formState.errors[config.name] && (
+        <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
+      )}
     </div>
   )
 }
@@ -479,6 +525,98 @@ function FileField({ config, form }: { config: FormFieldConfig; form: FormType }
                 <Paperclip className="h-4 w-4 stroke-current" />
                 <span>{file.name}</span>
               </FileUploaderItem>
+            ))}
+        </FileUploaderContent>
+      </FileUploader>
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
+      )}
+      {form.formState.errors[config.name] && (
+        <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
+      )}
+    </div>
+  )
+}
+
+function ImageField({ config, form }: { config: FormFieldConfig; form: FormType }) {
+  const [files, setFiles] = useState<File[] | null>(null)
+  const [previews, setPreviews] = useState<string[]>([])
+  
+  const dropZoneConfig = {
+    maxFiles: config.fileConfig?.multiple ? 5 : 1,
+    maxSize: config.fileConfig?.maxSize || 1024 * 1024 * 4,
+    multiple: config.fileConfig?.multiple || false,
+    accept: config.fileConfig?.accept ? { [config.fileConfig.accept]: [] } : { 'image/*': [] },
+  }
+  
+  // Generate previews when files change
+  React.useEffect(() => {
+    if (files && files.length > 0) {
+      const newPreviews: string[] = []
+      files.forEach(file => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          newPreviews.push(e.target?.result as string)
+          if (newPreviews.length === files.length) {
+            setPreviews([...newPreviews])
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+    } else {
+      setPreviews([])
+    }
+  }, [files])
+  
+  // Update form value when files change
+  React.useEffect(() => {
+    if (config.fileConfig?.multiple) {
+      form.setValue(config.name, files)
+    } else {
+      form.setValue(config.name, files?.[0] || null)
+    }
+  }, [files, config.name, config.fileConfig?.multiple, form])
+  
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={config.name}>{config.label}</Label>
+      <FileUploader
+        value={files}
+        onValueChange={setFiles}
+        dropzoneOptions={dropZoneConfig}
+        className="relative bg-background rounded-lg p-2"
+      >
+        <FileInput className="outline-dashed outline-1 outline-slate-500">
+          <div className="flex items-center justify-center flex-col p-8 w-full">
+            <CloudUpload className="text-gray-500 w-10 h-10" />
+            <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
+              <span className="font-semibold">Click to upload</span>
+              &nbsp; or drag and drop
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {config.fileConfig?.accept || "Images only (JPG, PNG, GIF, etc.)"}
+            </p>
+          </div>
+        </FileInput>
+        <FileUploaderContent>
+          {files &&
+            files.length > 0 &&
+            files.map((file, i) => (
+              <div key={i} className="flex items-center space-x-2 p-2 border rounded">
+                {previews[i] && (
+                  <img 
+                    src={previews[i]} 
+                    alt={file.name} 
+                    className="w-12 h-12 object-cover rounded"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
             ))}
         </FileUploaderContent>
       </FileUploader>

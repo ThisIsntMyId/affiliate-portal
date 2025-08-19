@@ -105,6 +105,21 @@ const demoConfig: FormFieldConfig[] = [
     description: "Receive email notifications about updates and new features"
   },
   {
+    name: "interests",
+    label: "Areas of Interest",
+    type: "checkboxgroup",
+    required: false,
+    description: "Select all areas that interest you",
+    options: [
+      { label: "Web Development", value: "web" },
+      { label: "Mobile Development", value: "mobile" },
+      { label: "Data Science", value: "data" },
+      { label: "Machine Learning", value: "ml" },
+      { label: "DevOps", value: "devops" },
+      { label: "UI/UX Design", value: "design" }
+    ]
+  },
+  {
     name: "marketing",
     label: "Marketing Emails",
     type: "switch",
@@ -149,6 +164,18 @@ const demoConfig: FormFieldConfig[] = [
       multiple: false,
       accept: "image/*",
       maxSize: 5 * 1024 * 1024 // 5MB
+    }
+  },
+  {
+    name: "gallery",
+    label: "Photo Gallery",
+    type: "image",
+    required: false,
+    description: "Upload multiple images for your gallery (JPG, PNG, GIF up to 10MB each)",
+    fileConfig: {
+      multiple: true,
+      accept: "image/*",
+      maxSize: 10 * 1024 * 1024 // 10MB
     }
   },
   {
