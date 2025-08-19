@@ -7,6 +7,7 @@ const demoPages = [
   { name: "DynamicForm", href: "/demo" },
   { name: "DynamicTable", href: "/demo/table" },
   { name: "StatCards", href: "/demo/stat-cards" },
+  { name: "Charts", href: "/demo/charts" },
 ]
 
 export function DemoNavigation() {
