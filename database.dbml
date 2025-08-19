@@ -1,0 +1,178 @@
+// ===============================================
+// == Schema for Affiliate & Referral Platform (Final) ==
+// ===============================================
+
+Project affiliate_system_final {
+  database_type: 'PostgreSQL'
+  Note: 'Final schema incorporating all core feature requests.'
+}
+
+// ===============================================
+// == Enums for Data Integrity                 ==
+// ===============================================
+
+Enum payout_status {
+  pending
+  processing
+  paid
+  declined
+}
+
+Enum commission_rate_type {
+  fixed
+  percent
+}
+
+Enum link_type {
+  affiliate
+  referral
+}
+
+// ===============================================
+// == User & Brand Tables                     ==
+// ===============================================
+
+Table Admins {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255)
+  email varchar(255) [unique, not null]
+  password_hash varchar(255) [not null]
+  timezone varchar(100) [not null, default: 'UTC']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table Brands {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar(50) [unique, not null, note: 'A unique, human-readable identifier for the brand']
+  name varchar(255) [not null]
+  website varchar(255)
+  tracking_domain varchar(255) [unique]
+  settings jsonb [note: 'Stores refer_and_earn rules, branding, etc.']
+  timezone varchar(100) [not null, default: 'UTC']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table Affiliates {
+  id uuid [pk, default: `gen_random_uuid()`]
+  brand_id uuid [not null, ref: > Brands.id]
+  code varchar(50) [unique, not null, note: 'A unique, human-readable identifier for the affiliate']
+  name varchar(255)
+  email varchar(255) [unique, not null]
+  password_hash varchar(255) [not null]
+  payment_details jsonb [note: 'Stores PayPal email, bank info, etc.']
+  timezone varchar(100) [not null, default: 'UTC']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table Referrers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  brand_id uuid [not null, ref: > Brands.id]
+  name varchar(255)
+  email varchar(255) [note: 'Email of the referrer, may not be unique across brands']
+  password_hash varchar(255) [note: 'Allows for a dedicated referrer login portal']
+  referrer_code varchar(50) [unique, not null, note: 'The unique, human-readable code for their link']
+  external_id varchar(255) [not null, note: 'The user ID from the brands main application (source of truth)']
+  is_active boolean [not null, default: true]
+  timezone varchar(100) [not null, default: 'UTC']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  
+  indexes {
+    (brand_id, external_id) [unique]
+  }
+}
+
+// ===============================================
+// == Campaign & Creatives Tables            ==
+// ===============================================
+
+Table Campaigns {
+  id uuid [pk, default: `gen_random_uuid()`]
+  brand_id uuid [not null, ref: > Brands.id]
+  code varchar(50) [unique, not null, note: 'A unique, human-readable identifier for the campaign']
+  title varchar(255) [not null]
+  description text
+  is_active boolean [not null, default: true]
+  settings jsonb [note: 'For campaign-level rules like IP whitelisting or fraud detection settings.']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table CommissionRates {
+  id uuid [pk, default: `gen_random_uuid()`]
+  campaign_id uuid [not null, ref: > Campaigns.id]
+  code varchar(50) [unique, not null, note: 'A unique, human-readable identifier for the rate']
+  title varchar(255) [not null, note: 'e.g., "Standard 15% Rate"']
+  type commission_rate_type [not null]
+  value decimal(10, 2) [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table Creatives {
+  id uuid [pk, default: `gen_random_uuid()`]
+  campaign_id uuid [not null, ref: > Campaigns.id]
+  name varchar(255) [not null]
+  type varchar(50) [not null, note: 'e.g., "banner", "text_link", "email_template"']
+  content text [not null, note: 'URL for images, text for ads, HTML for emails']
+  is_active boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+// ===============================================
+// == Tracking & Core Logic Tables            ==
+// ===============================================
+
+Table Links {
+  id uuid [pk, default: `gen_random_uuid()`]
+  brand_id uuid [not null, ref: > Brands.id]
+  affiliate_id uuid [ref: > Affiliates.id]
+  referrer_id uuid [ref: > Referrers.id]
+  campaign_id uuid [ref: > Campaigns.id, note: 'The affiliate campaign this link is for. Can be null for a base affiliate link.']
+  code varchar(100) [unique, not null, note: 'The unique tracking code used in the URL']
+  type link_type [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  
+  Note: 'A link must have either an affiliate_id OR a referrer_id, but not both.'
+}
+
+Table Clicks {
+  id uuid [pk, default: `gen_random_uuid()`]
+  link_id uuid [not null, ref: > Links.id]
+  ip_address inet
+  user_agent text
+  sub_ids jsonb
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table Conversions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  click_id uuid [unique, not null, ref: > Clicks.id]
+  brand_id uuid [not null, ref: > Brands.id]
+  sale_amount decimal(10, 2)
+  commission_amount decimal(10, 2) [not null, default: 0.00, note: 'Represents cash for affiliates OR credits for referrers']
+  status varchar(50) [not null, default: 'pending', note: 'Can be pending, approved, rejected']
+  metadata jsonb [note: 'Stores external IDs like order_id.']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table Payouts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  brand_id uuid [not null, ref: > Brands.id]
+  affiliate_id uuid [not null, ref: > Affiliates.id]
+  code varchar(50) [unique, not null, note: 'A unique, human-readable identifier for the payout, e.g., "PAY-XYZ123"']
+  amount decimal(10, 2) [not null]
+  status payout_status [not null, default: 'pending']
+  notes text
+  transaction_id varchar(500) [note: 'External transaction ID for successful payouts.']
+  decline_reason varchar(500) [note: 'Reason for a declined payout.']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
