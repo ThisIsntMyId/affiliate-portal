@@ -443,34 +443,71 @@ export default function TableDemo() {
           </p>
         </div>
 
-      <DynamicTable
-        data={data}
-        columns={columns}
-        filters={filters}
-        sortOptions={sortOptions}
-        title="User Management"
-        description="Manage your application users with advanced filtering and sorting capabilities."
-        headerActions={headerActions}
-        paginationType="full"
-        loading={loading}
-        emptyState={emptyState}
-        onAction={handleAction}
-      />
+        <DynamicTable
+         data={data}
+         columns={columns}
+         filters={filters}
+         sortOptions={sortOptions}
+         title="User Management"
+         description="Manage your application users with advanced filtering and sorting capabilities."
+         headerActions={headerActions}
+         paginationType="full"
+         loading={loading}
+         emptyState={emptyState}
+         onAction={handleAction}
+         searchable={true}
+         filterable={true}
+         sortable={true}
+         paginationEnabled={true}
+       />
 
-      <div className="bg-muted p-4 rounded-lg">
-        <h3 className="font-semibold mb-2">Features Demonstrated:</h3>
-        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-          <li>Different column types: text, image, tag, actions</li>
-          <li>Search functionality with debouncing</li>
-          <li>Filter modal with select and input fields</li>
-          <li>Sorting with custom sort options</li>
-          <li>Pagination controls</li>
-          <li>Loading states with skeleton</li>
-          <li>Empty state handling</li>
-          <li>Header actions</li>
-          <li>Responsive design</li>
-        </ul>
-      </div>
+       {/* Example: Simple table with no controls */}
+       <div className="mt-8">
+         <h2 className="text-2xl font-bold mb-4">Simple Table (No Controls)</h2>
+         <DynamicTable
+           data={data.slice(0, 5)}
+           columns={columns}
+           title="Simple User List"
+           description="A clean table without search, filters, sorting, or pagination."
+           onAction={handleAction}
+           searchable={false}
+           filterable={false}
+           sortable={false}
+           paginationEnabled={false}
+         />
+       </div>
+
+       {/* Example: Table with only search */}
+       <div className="mt-8">
+         <h2 className="text-2xl font-bold mb-4">Search-Only Table</h2>
+         <DynamicTable
+           data={data.slice(0, 10)}
+           columns={columns}
+           title="Searchable Users"
+           description="Table with only search functionality enabled."
+           onAction={handleAction}
+           searchable={true}
+           filterable={false}
+           sortable={false}
+           paginationEnabled={false}
+         />
+       </div>
+
+             <div className="bg-muted p-4 rounded-lg">
+         <h3 className="font-semibold mb-2">Features Demonstrated:</h3>
+         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+           <li>Different column types: text, image, tag, actions</li>
+           <li>Search functionality with debouncing</li>
+           <li>Filter modal with select and input fields</li>
+           <li>Sorting with custom sort options</li>
+           <li>Pagination controls</li>
+           <li>Loading states with skeleton</li>
+           <li>Empty state handling</li>
+           <li>Header actions</li>
+           <li>Responsive design</li>
+           <li>Feature toggles (searchable, filterable, sortable, paginationEnabled)</li>
+         </ul>
+       </div>
     </div>
     </>
   )

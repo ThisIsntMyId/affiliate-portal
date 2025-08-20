@@ -78,6 +78,12 @@ export interface DynamicTableProps {
   loading?: boolean
   emptyState?: EmptyStateConfig
   onAction: (action: TableAction) => void
+  
+  // Feature toggles
+  searchable?: boolean
+  filterable?: boolean
+  sortable?: boolean
+  paginationEnabled?: boolean
 }
 
 // Helper function for nested data
@@ -401,7 +407,11 @@ export function DynamicTable({
   paginationType = 'full', 
   loading = false, 
   emptyState, 
-  onAction 
+  onAction,
+  searchable = true,
+  filterable = true,
+  sortable = true,
+  paginationEnabled = true
 }: DynamicTableProps) {
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -529,80 +539,86 @@ export function DynamicTable({
       
       <CardContent>
         {/* Search and Controls Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            {isSearching ? (
-              <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-            ) : (
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {(searchable || filterable || sortable) && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {searchable && (
+              <div className="relative flex-1">
+                {isSearching ? (
+                  <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                )}
+                <Input
+                  placeholder={isSearching ? "Searching..." : "Search..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 cursor-text"
+                  disabled={isSearching}
+                />
+              </div>
             )}
-            <Input
-              placeholder={isSearching ? "Searching..." : "Search..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 cursor-text"
-              disabled={isSearching}
-            />
+            
+            <div className="flex gap-2">
+              {filterable && filters && filters.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilterModal(true)}
+                  className="flex items-center gap-2 cursor-pointer"
+                  disabled={isFiltering}
+                >
+                  {isFiltering ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Filter className="h-4 w-4" />
+                  )}
+                  {isFiltering ? 'Filtering...' : 'Filters'}
+                </Button>
+              )}
+              
+              {sortable && sortOptions && Object.keys(sortOptions).length > 0 && (
+                <Select value={currentSort} onValueChange={handleSortChange} disabled={isSorting}>
+                  <SelectTrigger className="w-40 cursor-pointer">
+                    <SelectValue placeholder={isSorting ? "Sorting..." : "Sort by..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(sortOptions).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
-          
-          <div className="flex gap-2">
-                         {filters && filters.length > 0 && (
-               <Button
-                 variant="outline"
-                 onClick={() => setShowFilterModal(true)}
-                 className="flex items-center gap-2 cursor-pointer"
-                 disabled={isFiltering}
-               >
-                 {isFiltering ? (
-                   <Loader2 className="h-4 w-4 animate-spin" />
-                 ) : (
-                   <Filter className="h-4 w-4" />
-                 )}
-                 {isFiltering ? 'Filtering...' : 'Filters'}
-               </Button>
-             )}
-             
-             {sortOptions && Object.keys(sortOptions).length > 0 && (
-               <Select value={currentSort} onValueChange={handleSortChange} disabled={isSorting}>
-                 <SelectTrigger className="w-40 cursor-pointer">
-                   <SelectValue placeholder={isSorting ? "Sorting..." : "Sort by..."} />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {Object.entries(sortOptions).map(([value, label]) => (
-                     <SelectItem key={value} value={value}>
-                       {label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             )}
-          </div>
-        </div>
+        )}
         
         {/* Table */}
         {renderTable()}
         
         {/* Pagination */}
-                 {paginationType !== 'none' && data.length > 0 && (
-           <PaginationControls
-             type={paginationType}
-             currentPage={currentPage}
-             totalPages={Math.ceil(data.length / perPage)}
-             perPage={perPage}
-             onPageChange={handlePageChange}
-             onPerPageChange={handlePerPageChange}
-           />
-         )}
+        {paginationEnabled && paginationType !== 'none' && data.length > 0 && (
+          <PaginationControls
+            type={paginationType}
+            currentPage={currentPage}
+            totalPages={Math.ceil(data.length / perPage)}
+            perPage={perPage}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+          />
+        )}
       </CardContent>
       
       {/* Filter Modal */}
-      <FilterModal
-        open={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        filters={filters}
-        onApply={handleFilterApply}
-        isFiltering={isFiltering}
-      />
+      {filterable && (
+        <FilterModal
+          open={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          filters={filters}
+          onApply={handleFilterApply}
+          isFiltering={isFiltering}
+        />
+      )}
     </Card>
   )
 }
