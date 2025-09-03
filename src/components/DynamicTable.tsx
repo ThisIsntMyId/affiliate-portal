@@ -219,21 +219,20 @@ function FilterModal({
               <Label htmlFor={filter.key}>{filter.label}</Label>
               
               {filter.type === 'select' && (
-                                 <Select 
-                   value={filterValues[filter.key] || ''} 
-                   onValueChange={(value) => setFilterValues(prev => ({ ...prev, [filter.key]: value }))}
-                 >
+                                                 <Select 
+                  value={filterValues[filter.key] || 'all'} 
+                  onValueChange={(value) => setFilterValues(prev => ({ ...prev, [filter.key]: value }))}
+                >
                    <SelectTrigger className="cursor-pointer">
                      <SelectValue placeholder={filter.placeholder || `Select ${filter.label}`} />
                    </SelectTrigger>
-                                     <SelectContent>
-                     <SelectItem value="all">All</SelectItem>
-                     {filter.options?.map((option) => (
-                       <SelectItem key={option.value} value={option.value}>
-                         {option.label}
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
+                                                       <SelectContent>
+                    {filter.options?.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               )}
               
