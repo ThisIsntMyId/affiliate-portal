@@ -1,251 +1,280 @@
-import { StatCard } from "@/components/StatCard"
-import { DemoNavigation } from "@/components/demo-navigation"
-import { 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
-  Target,
-  BarChart3,
-  Activity,
-  ShoppingCart,
-  Award
-} from "lucide-react"
+"use client";
 
-export default function StatCardsDemo() {
+import { StatCard } from '@/components/StatCard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, TrendingDown, Users, DollarSign, ShoppingCart, Activity } from 'lucide-react';
+
+export default function StatCardsDemoPage() {
   return (
-    <>
-      <DemoNavigation />
-      <div className="container mx-auto p-6 space-y-8">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">StatCard Component Demo</h1>
-        <p className="text-muted-foreground">
-          Showcasing various configurations and use cases of the StatCard component
+    <div className="max-w-6xl mx-auto space-y-8">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Stat Cards Demo</h1>
+        <p className="text-lg text-muted-foreground mb-6">
+          Statistics cards with trends, comparisons, and visual indicators
         </p>
       </div>
 
-      {/* Basic Usage */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Basic Usage</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Clicks"
-            value="14,830"
-          />
-          <StatCard
-            title="Conversions"
-            value="621"
-          />
-          <StatCard
-            title="Conversion Rate"
-            value="4.19%"
-          />
-          <StatCard
-            title="Commissions (Pending)"
-            value="$3,105.50"
-          />
-        </div>
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Card Types</CardTitle>
+            <CardDescription>Different stat card variations</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Basic metrics</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Trend indicators</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Comparison values</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <span>Progress indicators</span>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* With Icons - Top Right (Default) */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">With Icons - Top Right (Default)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Visual Elements</CardTitle>
+            <CardDescription>Design components included</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Icons and illustrations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Color-coded trends</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Progress bars</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Hover effects</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Use Cases</CardTitle>
+            <CardDescription>Common applications</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Dashboard overviews</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>KPI monitoring</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Performance metrics</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Analytics summaries</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Basic Stat Cards */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Basic Stat Cards</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Clicks"
-            value="14,830"
-            icon={<TrendingUp className="h-5 w-5" />}
+            title="Total Revenue"
+            value="$45,231.89"
+            icon={<DollarSign className="w-5 h-5" />}
+            description="+20.1% from last month"
+            trend="up"
+            trendValue="20.1%"
           />
           <StatCard
             title="Active Users"
-            value="2,847"
-            icon={<Users className="h-5 w-5" />}
+            value="2,350"
+            icon={<Users className="w-5 h-5" />}
+            description="+180.1% from last month"
+            trend="up"
+            trendValue="180.1%"
           />
           <StatCard
-            title="Revenue"
-            value="$45,230"
-            icon={<DollarSign className="h-5 w-5" />}
+            title="Sales"
+            value="12,234"
+            icon={<ShoppingCart className="w-5 h-5" />}
+            description="+19% from last month"
+            trend="up"
+            trendValue="19%"
           />
+          <StatCard
+            title="Active Now"
+            value="573"
+            icon={<Activity className="w-5 h-5" />}
+            description="+201 since last hour"
+            trend="up"
+            trendValue="201"
+          />
+        </div>
+      </div>
+
+      {/* Cards with Different Trends */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Trend Variations</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Conversion Rate"
-            value="4.19%"
-            icon={<Target className="h-5 w-5" />}
+            value="3.2%"
+            icon={<TrendingUp className="w-5 h-5" />}
+            description="+0.4% from last month"
+            trend="up"
+            trendValue="0.4%"
+            color="green"
+          />
+          <StatCard
+            title="Bounce Rate"
+            value="45.1%"
+            icon={<TrendingDown className="w-5 h-5" />}
+            description="-4.3% from last month"
+            trend="down"
+            trendValue="4.3%"
+            color="red"
+          />
+          <StatCard
+            title="Page Views"
+            value="89,400"
+            icon={<Activity className="w-5 h-5" />}
+            description="No change from last month"
+            trend="neutral"
+            trendValue="0%"
+            color="gray"
           />
         </div>
-      </section>
+      </div>
 
-      {/* With Icons - Top Left */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">With Icons - Top Left</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Cards with Progress Indicators */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Progress Indicators</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <StatCard
-            title="Total Clicks"
-            value="14,830"
-            icon={<TrendingUp className="h-5 w-5" />}
-            iconPosition="top-left"
+            title="Monthly Goal"
+            value="$24,000"
+            icon={<DollarSign className="w-5 h-5" />}
+            description="75% of target achieved"
+            progress={75}
+            progressColor="blue"
           />
           <StatCard
-            title="Active Users"
-            value="2,847"
-            icon={<Users className="h-5 w-5" />}
-            iconPosition="top-left"
-          />
-          <StatCard
-            title="Revenue"
-            value="$45,230"
-            icon={<DollarSign className="h-5 w-5" />}
-            iconPosition="top-left"
-          />
-          <StatCard
-            title="Conversion Rate"
-            value="4.19%"
-            icon={<Target className="h-5 w-5" />}
-            iconPosition="top-left"
+            title="User Engagement"
+            value="68%"
+            icon={<Users className="w-5 h-5" />}
+            description="Above average engagement"
+            progress={68}
+            progressColor="green"
           />
         </div>
-      </section>
+      </div>
 
-      {/* With Subtitles */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">With Subtitles</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Custom Styled Cards */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Custom Styling</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
-            title="Total Clicks"
-            subtitle="Last 30 days"
-            value="14,830"
-            icon={<TrendingUp className="h-5 w-5" />}
+            title="Premium Users"
+            value="1,234"
+            icon={<Users className="w-5 h-5" />}
+            description="+12% from last month"
+            trend="up"
+            trendValue="12%"
+            className="border-l-4 border-l-blue-500"
           />
           <StatCard
-            title="Active Users"
-            subtitle="Currently online"
-            value="2,847"
-            icon={<Users className="h-5 w-5" />}
+            title="Support Tickets"
+            value="89"
+            icon={<Activity className="w-5 h-5" />}
+            description="-5% from last month"
+            trend="down"
+            trendValue="5%"
+            className="border-l-4 border-l-green-500"
           />
           <StatCard
-            title="Revenue"
-            subtitle="This month"
-            value="$45,230"
-            icon={<DollarSign className="h-5 w-5" />}
-          />
-          <StatCard
-            title="Conversion Rate"
-            subtitle="Overall performance"
-            value="4.19%"
-            icon={<Target className="h-5 w-5" />}
+            title="Server Uptime"
+            value="99.9%"
+            icon={<TrendingUp className="w-5 h-5" />}
+            description="Excellent performance"
+            trend="up"
+            trendValue="0.1%"
+            className="border-l-4 border-l-purple-500"
           />
         </div>
-      </section>
+      </div>
 
-      {/* Clickable Cards */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Clickable Cards (with Links)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Large Format Cards */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-6">Large Format Cards</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <StatCard
-            title="Analytics Dashboard"
-            subtitle="View detailed metrics"
-            value="View Report"
-            icon={<BarChart3 className="h-5 w-5" />}
-            link="/demo/analytics"
+            title="Annual Revenue"
+            value="$2,400,000"
+            icon={<DollarSign className="w-5 h-5" />}
+            description="+15.3% from last year"
+            trend="up"
+            trendValue="15.3%"
+            size="large"
+            className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20"
           />
           <StatCard
-            title="User Activity"
-            subtitle="Monitor user behavior"
-            value="View Details"
-            icon={<Activity className="h-5 w-5" />}
-            link="/demo/activity"
-          />
-          <StatCard
-            title="Orders"
-            subtitle="Track order status"
-            value="View Orders"
-            icon={<ShoppingCart className="h-5 w-5" />}
-            link="/demo/orders"
-          />
-          <StatCard
-            title="Achievements"
-            subtitle="View your rewards"
-            value="View Rewards"
-            icon={<Award className="h-5 w-5" />}
-            link="/demo/rewards"
+            title="Customer Satisfaction"
+            value="4.8/5"
+            icon={<Users className="w-5 h-5" />}
+            description="Based on 1,200 reviews"
+            trend="up"
+            trendValue="0.2"
+            size="large"
+            className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20"
           />
         </div>
-      </section>
+      </div>
 
-      {/* Custom Styling */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Custom Styling</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Premium Feature"
-            subtitle="Exclusive access"
-            value="VIP"
-            icon={<Award className="h-5 w-5" />}
-            className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200"
-          />
-          <StatCard
-            title="Success Metric"
-            subtitle="Target achieved"
-            value="100%"
-            icon={<Target className="h-5 w-5" />}
-            className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200"
-          />
-          <StatCard
-            title="Warning Alert"
-            subtitle="Attention required"
-            value="3 Issues"
-            icon={<Activity className="h-5 w-5" />}
-            className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200"
-          />
-          <StatCard
-            title="Critical Error"
-            subtitle="Immediate action needed"
-            value="5 Errors"
-            icon={<BarChart3 className="h-5 w-5" />}
-            className="bg-gradient-to-br from-red-50 to-pink-50 border-red-200"
-          />
+      <div className="bg-muted/30 rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Stat Card Configuration</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h3 className="font-medium mb-2">Available Props:</h3>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>• title, value, description</li>
+              <li>• icon (Lucide React icons)</li>
+              <li>• trend (up, down, neutral)</li>
+              <li>• trendValue and color</li>
+              <li>• progress percentage</li>
+              <li>• size (small, medium, large)</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-medium mb-2">Styling Options:</h3>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>• Custom className support</li>
+              <li>• Gradient backgrounds</li>
+              <li>• Border variations</li>
+              <li>• Color themes</li>
+              <li>• Responsive layouts</li>
+              <li>• Hover animations</li>
+            </ul>
+          </div>
         </div>
-      </section>
-
-      {/* Responsive Behavior */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Responsive Behavior</h2>
-        <p className="text-muted-foreground">
-          Resize your browser window to see how the cards adapt to different screen sizes.
-          On mobile, they stack vertically; on larger screens, they display in a grid.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          <StatCard
-            title="Metric 1"
-            value="100"
-            icon={<TrendingUp className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Metric 2"
-            value="200"
-            icon={<Users className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Metric 3"
-            value="300"
-            icon={<DollarSign className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Metric 4"
-            value="400"
-            icon={<Target className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Metric 5"
-            value="500"
-            icon={<BarChart3 className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Metric 6"
-            value="600"
-            icon={<Activity className="h-4 w-4" />}
-          />
-        </div>
-      </section>
+      </div>
     </div>
-    </>
-  )
+  );
 }

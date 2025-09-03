@@ -10,6 +10,13 @@ export interface StatCardProps {
   iconPosition?: "top-left" | "top-right"
   link?: string
   className?: string
+  description?: string
+  trend?: "up" | "down" | "neutral"
+  trendValue?: string
+  color?: "green" | "red" | "blue" | "purple" | "orange" | "gray"
+  progress?: number
+  progressColor?: "green" | "red" | "blue" | "purple" | "orange" | "gray"
+  size?: "small" | "medium" | "large"
 }
 
 export function StatCard({
@@ -20,9 +27,46 @@ export function StatCard({
   iconPosition = "top-right",
   link,
   className,
+  description,
+  trend,
+  trendValue,
+  color,
+  progress,
+  progressColor,
+  size = "medium",
 }: StatCardProps) {
   const CardWrapper = link ? "a" : "div"
   
+  // Helper functions for styling
+  const getTrendColor = (trend: string) => {
+    switch (trend) {
+      case "up": return "text-green-600"
+      case "down": return "text-red-600"
+      case "neutral": return "text-gray-600"
+      default: return "text-gray-600"
+    }
+  }
+
+  const getProgressColor = (color: string) => {
+    switch (color) {
+      case "green": return "bg-green-500"
+      case "red": return "bg-red-500"
+      case "blue": return "bg-blue-500"
+      case "purple": return "bg-purple-500"
+      case "orange": return "bg-orange-500"
+      case "gray": return "bg-gray-500"
+      default: return "bg-blue-500"
+    }
+  }
+
+  const getSizeClasses = (size: string) => {
+    switch (size) {
+      case "small": return "text-lg"
+      case "large": return "text-3xl"
+      default: return "text-2xl"
+    }
+  }
+
   const cardContent = (
     <Card className={cn("transition-all duration-200 hover:shadow-md", className)}>
       <CardHeader className="pb-2">
@@ -54,9 +98,29 @@ export function StatCard({
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="text-2xl font-bold text-foreground">
+        <div className={cn("font-bold text-foreground", getSizeClasses(size))}>
           {value}
         </div>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {description}
+          </p>
+        )}
+        {trend && trendValue && (
+          <div className={cn("text-sm font-medium mt-1", getTrendColor(trend))}>
+            {trend === "up" && "↗"} {trend === "down" && "↘"} {trend === "neutral" && "→"} {trendValue}
+          </div>
+        )}
+        {progress !== undefined && (
+          <div className="mt-3">
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={cn("h-2 rounded-full", getProgressColor(progressColor || "blue"))}
+                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

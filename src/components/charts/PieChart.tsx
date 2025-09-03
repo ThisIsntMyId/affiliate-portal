@@ -21,9 +21,20 @@ import {
 export interface PieChartProps {
   title?: string;
   description?: string;
-  data: Array<{ label: string; [key: string]: string | number }>;
+  data: Array<{ 
+    name?: string; 
+    label?: string; 
+    value: number; 
+    color?: string; 
+    [key: string]: string | number | undefined 
+  }>;
   width?: number | string;
+  height?: number;
   className?: string;
+  showLegend?: boolean;
+  showTooltip?: boolean;
+  innerRadius?: number;
+  outerRadius?: number;
 }
 
 export function PieChart({
@@ -31,71 +42,68 @@ export function PieChart({
   description,
   data,
   width,
+  height = 400,
   className = "",
+  showLegend = false,
+  showTooltip = true,
+  innerRadius = 0,
+  outerRadius = 80,
 }: PieChartProps) {
-  // Get series names (excluding 'label') - for pie chart we'll use the first series
-  const seriesNames = data.length > 0 
-    ? Object.keys(data[0]).filter(key => key !== 'label')
-    : [];
-
-  const seriesName = seriesNames[0] || 'value';
+  // Transform data for pie chart
+  const transformedData = data.map((item, index) => {
+    const label = item.name || item.label || `Item ${index + 1}`;
+    return {
+      name: label,
+      value: Number(item.value) || 0,
+      fill: item.color || `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
+    };
+  });
 
   // Create chart config
-  const chartConfig: ChartConfig = {
-    [seriesName]: {
-      label: "Value",
-    },
-    ...data.reduce((config, item, index) => {
-      config[item.label.toLowerCase()] = {
-        label: item.label,
-        color: `var(--chart-${(index % 5) + 1})`,
-      };
-      return config;
-    }, {} as ChartConfig),
-  };
-
-  // Transform data for pie chart
-  const transformedData = data.map((item, index) => ({
-    browser: item.label.toLowerCase(),
-    visitors: Number(item[seriesName]) || 0,
-    fill: `var(--color-${item.label.toLowerCase()})`,
-  }));
+  const chartConfig: ChartConfig = transformedData.reduce((config, item, index) => {
+    config[item.name.toLowerCase().replace(/\s+/g, '')] = {
+      label: item.name,
+      color: item.fill,
+    };
+    return config;
+  }, {} as ChartConfig);
 
   const cardStyle = {
     width: width === "100%" ? "100%" : width ? `${width}px` : undefined,
+    height: height ? `${height}px` : undefined,
   };
 
   return (
-    <Card className={`flex flex-col ${className}`} style={cardStyle}>
+    <div className={`flex flex-col ${className}`} style={cardStyle}>
       {(title || description) && (
-        <CardHeader className="items-center pb-0">
-          {title && <CardTitle>{title}</CardTitle>}
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
+        <div className="text-center mb-4">
+          {title && <h3 className="text-lg font-semibold">{title}</h3>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
       )}
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[250px]"
-        >
-          <RechartsPieChart>
+      <ChartContainer
+        config={chartConfig}
+        className="[&_.recharts-text]:fill-foreground mx-auto"
+        style={{ height: `${height}px` }}
+      >
+        <RechartsPieChart>
+          {showTooltip && (
             <ChartTooltip
-              content={<ChartTooltipContent nameKey="visitors" hideLabel />}
+              content={<ChartTooltipContent nameKey="name" />}
             />
-            <Pie data={transformedData} dataKey="visitors">
-              <LabelList
-                dataKey="browser"
-                className="fill-background"
-                stroke="none"
-                fontSize={12}
-                formatter={(value: keyof typeof chartConfig) =>
-                  chartConfig[value]?.label
-                }
-              />
-            </Pie>
-          </RechartsPieChart>
-                 </ChartContainer>
-       </CardContent>
-     </Card>
-   )
- }
+          )}
+          <Pie 
+            data={transformedData} 
+            dataKey="value"
+            nameKey="name"
+            cx="50%" 
+            cy="50%" 
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
+            paddingAngle={2}
+          />
+        </RechartsPieChart>
+      </ChartContainer>
+    </div>
+  );
+}
