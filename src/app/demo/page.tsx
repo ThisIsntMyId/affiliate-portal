@@ -311,7 +311,7 @@ export default function DemoPage() {
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>Try submitting with different values to test the error handling!</p>
           <p className="mt-2">
-            <strong>Test cases:</strong> Use "admin" as username, "test" in email, negative price, or age under 18
+            <strong>Test cases:</strong> Use &quot;admin&quot; as username, &quot;test&quot; in email, negative price, or age under 18
           </p>
         </div>
         
