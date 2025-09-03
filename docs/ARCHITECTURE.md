@@ -51,6 +51,7 @@ src/
 │   ├── logging.service.ts
 │   ├── rate-limiting.service.ts
 │   ├── crypto.service.ts
+│   ├── code-generation.service.ts
 │   └── helpers/
 │       ├── formatting.ts
 │       ├── validation.ts
@@ -114,15 +115,81 @@ export const BrandModel = {
 ```typescript
 // actions/brand.action.ts
 'use server'
-import { createBrandSchema } from '@/utils/validation';
 
+import { BrandModel } from '@/models/brand.model';
+import { AffiliateModel } from '@/models/affiliate.model';
+import { EmailService } from '@/services/email.service';
+import { revalidatePath, redirect } from 'next/navigation';
+import { z } from 'zod';
+
+// ARCHITECTURE DECISION: Validation schemas are defined locally in each file
+// This keeps validation logic close to where it's used and avoids spreading schemas across the app
+const createBrandSchema = z.object({
+  name: z.string().min(1, 'Brand name is required'),
+  email: z.string().email('Invalid email address'),
+  website: z.string().url('Invalid website URL').optional(),
+  description: z.string().min(10, 'Description must be at least 10 characters')
+});
+
+const approveAffiliateSchema = z.object({
+  affiliateId: z.string().uuid('Invalid affiliate ID')
+});
+
+// ARCHITECTURE DECISION: Actions handle user interactions and form submissions
+// They are stateful, user-centric, and form-aware with built-in revalidation
 export async function createBrand(data: unknown) {
   try {
+    // ARCHITECTURE DECISION: Validation happens at the action level
+    // This ensures data integrity before reaching the model layer
     const validated = createBrandSchema.parse(data);
+    
+    // ARCHITECTURE DECISION: Actions call models directly for data operations
+    // No service layer abstraction - keep it simple and direct
     const brand = await BrandModel.create(validated);
     
+    // ARCHITECTURE DECISION: Actions handle state management
+    // Revalidation ensures UI updates, redirects provide user feedback
     revalidatePath('/brands');
     redirect('/brands');
+    
+  } catch (error) {
+    // ARCHITECTURE DECISION: Actions handle form-specific error responses
+    // Different from API routes - actions return form-friendly error objects
+    if (error instanceof z.ZodError) {
+      return { 
+        success: false, 
+        errors: error.flatten().fieldErrors 
+      };
+    }
+    throw error;
+  }
+}
+
+// ARCHITECTURE DECISION: Actions can handle complex business operations
+// They orchestrate multiple models and services as needed
+export async function approveAffiliate(affiliateId: string) {
+  try {
+    const validated = approveAffiliateSchema.parse({ affiliateId });
+    
+    // Multiple model operations in a single action
+    const affiliate = await AffiliateModel.findById(validated.affiliateId);
+    const brand = await BrandModel.findById(affiliate.brandId);
+    
+    // Business logic: Update affiliate status
+    await AffiliateModel.updateStatus(validated.affiliateId, 'approved');
+    
+    // ARCHITECTURE DECISION: Actions can call services for side effects
+    // Email notifications, logging, etc. happen at the action level
+    await EmailService.sendEmail({
+      to: affiliate.email,
+      from: 'noreply@affiliateportal.com',
+      subject: 'Affiliate Application Approved',
+      content: `Congratulations! Your application for ${brand.name} has been approved.`
+    });
+    
+    revalidatePath('/admin/affiliates');
+    return { success: true };
+    
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { 
@@ -147,17 +214,51 @@ export async function createBrand(data: unknown) {
 **Example**:
 ```typescript
 // app/api/brand/route.ts
-export async function POST(request: Request) {
+import { NextRequest, NextResponse } from 'next/server';
+import { BrandModel } from '@/models/brand.model';
+import { z } from 'zod';
+
+// ARCHITECTURE DECISION: Validation schemas are defined locally in each file
+// This keeps validation logic close to where it's used and avoids spreading schemas across the app
+const createBrandSchema = z.object({
+  name: z.string().min(1, 'Brand name is required'),
+  email: z.string().email('Invalid email address'),
+  website: z.string().url('Invalid website URL').optional(),
+  description: z.string().min(10, 'Description must be at least 10 characters')
+});
+
+const getBrandsQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(10),
+  search: z.string().optional()
+});
+
+// ARCHITECTURE DECISION: API routes are stateless and HTTP-aware
+// They handle external requests with proper HTTP semantics and status codes
+export async function POST(request: NextRequest) {
   try {
+    // ARCHITECTURE DECISION: API routes handle HTTP protocol specifics
+    // JSON parsing, content-type validation, etc.
     const data = await request.json();
+    
+    // ARCHITECTURE DECISION: Validation schemas are defined locally
+    // This ensures validation logic is close to where it's used
     const validated = createBrandSchema.parse(data);
+    
+    // ARCHITECTURE DECISION: API routes call models directly
+    // No service layer abstraction - keep it simple and performant
     const brand = await BrandModel.create(validated);
     
+    // ARCHITECTURE DECISION: API routes return structured JSON responses
+    // Different from actions - no redirects, proper HTTP status codes
     return NextResponse.json({ 
       success: true, 
       data: brand 
-    });
+    }, { status: 201 });
+    
   } catch (error) {
+    // ARCHITECTURE DECISION: API routes handle HTTP-specific error responses
+    // Proper status codes, structured error objects for external consumers
     if (error instanceof z.ZodError) {
       return NextResponse.json({ 
         success: false, 
@@ -169,6 +270,56 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: false, 
       error: 'Internal server error' 
+    }, { status: 500 });
+  }
+}
+
+// ARCHITECTURE DECISION: API routes can handle complex external operations
+// They orchestrate multiple models and services for external integrations
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    
+    // ARCHITECTURE DECISION: Query parameter validation with local schemas
+    // This ensures type safety and validation for external API consumers
+    const validated = getBrandsQuerySchema.parse({
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+      search: searchParams.get('search')
+    });
+    
+    // ARCHITECTURE DECISION: API routes can implement pagination, filtering
+    // They handle query parameters and return paginated responses
+    const brands = await BrandModel.getPaginated({ 
+      page: validated.page, 
+      limit: validated.limit,
+      search: validated.search 
+    });
+    const total = await BrandModel.getCount({ search: validated.search });
+    
+    return NextResponse.json({
+      success: true,
+      data: brands,
+      meta: {
+        page: validated.page,
+        limit: validated.limit,
+        total,
+        totalPages: Math.ceil(total / validated.limit)
+      }
+    });
+    
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid query parameters',
+        details: error.flatten().fieldErrors
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to fetch brands' 
     }, { status: 500 });
   }
 }
@@ -186,13 +337,71 @@ export async function POST(request: Request) {
 **Example**:
 ```typescript
 // app/brands/page.tsx
+import { BrandModel } from '@/models/brand.model';
+import { AffiliateModel } from '@/models/affiliate.model';
+import { UserModel } from '@/models/user.model';
+import { getCurrentUser } from '@/auth/user';
+import { BrandsList } from '@/components/BrandsList';
+import { Suspense } from 'react';
+
+// ARCHITECTURE DECISION: Pages handle server-side rendering and data fetching
+// They are render-centric, SEO-optimized, and can load multiple data sources
 export default async function BrandsPage() {
-  const brands = await BrandModel.getAll();
+  // ARCHITECTURE DECISION: Pages can load user context and permissions
+  // This enables role-based rendering and access control
+  const currentUser = await getCurrentUser();
+  const userPermissions = await UserModel.getPermissions(currentUser.id);
+  
+  // ARCHITECTURE DECISION: Pages can load multiple models in parallel
+  // This optimizes performance by avoiding sequential database calls
+  const [brands, affiliateStats, userBrands] = await Promise.all([
+    BrandModel.getAll(),
+    AffiliateModel.getStats(),
+    currentUser.role === 'affiliate' 
+      ? AffiliateModel.getByUserId(currentUser.id)
+      : Promise.resolve([])
+  ]);
+  
+  // ARCHITECTURE DECISION: Pages handle conditional rendering based on data
+  // Different content for different user roles and permissions
+  const canCreateBrand = userPermissions.includes('brand:create');
+  const canViewAllBrands = userPermissions.includes('brand:view:all');
   
   return (
-    <div>
-      <h1>Brands</h1>
-      <BrandsList brands={brands} />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Brands</h1>
+        {canCreateBrand && (
+          <button className="btn btn-primary">Create Brand</button>
+        )}
+      </div>
+      
+      {/* ARCHITECTURE DECISION: Pages can show loading states with Suspense */}
+      {/* This provides better UX during data fetching */}
+      <Suspense fallback={<div>Loading brand statistics...</div>}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="card">
+            <h3>Total Brands</h3>
+            <p className="text-2xl font-bold">{brands.length}</p>
+          </div>
+          <div className="card">
+            <h3>Active Affiliates</h3>
+            <p className="text-2xl font-bold">{affiliateStats.active}</p>
+          </div>
+          <div className="card">
+            <h3>Your Brands</h3>
+            <p className="text-2xl font-bold">{userBrands.length}</p>
+          </div>
+        </div>
+      </Suspense>
+      
+      {/* ARCHITECTURE DECISION: Pages handle conditional content rendering */}
+      {/* Different views for different user roles */}
+      {canViewAllBrands ? (
+        <BrandsList brands={brands} showAll={true} />
+      ) : (
+        <BrandsList brands={userBrands} showAll={false} />
+      )}
     </div>
   );
 }
@@ -214,18 +423,99 @@ export default async function BrandsPage() {
 - **Logging Service**: Structured logging, error tracking
 - **Rate Limiting Service**: Request rate limiting
 - **Crypto Service**: Encryption, hashing
+- **Code Generation Service**: Entity code generation
 - **Helpers**: Formatting, validation utilities
 
-**Example**:
+**Examples**:
+
 ```typescript
 // services/email.service.ts
+// ARCHITECTURE DECISION: Services are simple, focused functions
+// They handle third-party integrations with minimal abstraction
 export const EmailService = {
-  async sendWelcomeEmail(email: string) {
+  async sendEmail(params: {
+    to: string;
+    from: string;
+    subject: string;
+    content: string;
+    html?: string;
+  }) {
     await sendGrid.send({
-      to: email,
-      subject: 'Welcome!',
-      html: '<h1>Welcome to our platform!</h1>'
+      to: params.to,
+      from: params.from,
+      subject: params.subject,
+      text: params.content,
+      html: params.html || params.content
     });
+  }
+};
+
+// services/sms.service.ts
+export const SMSService = {
+  async sendSMS(params: {
+    to: string;
+    message: string;
+    from?: string;
+  }) {
+    await twilio.messages.create({
+      to: params.to,
+      from: params.from || process.env.TWILIO_PHONE,
+      body: params.message
+    });
+  }
+};
+
+// services/storage.service.ts
+export const StorageService = {
+  async upload(file: File, path: string): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const url = await cloudinary.uploader.upload(
+      `data:${file.type};base64,${Buffer.from(buffer).toString('base64')}`,
+      { public_id: path }
+    );
+    return url.secure_url;
+  },
+
+  async delete(path: string): Promise<void> {
+    await cloudinary.uploader.destroy(path);
+  },
+
+  async getSignedUrl(path: string): Promise<string> {
+    return await cloudinary.url(path, { sign_url: true });
+  }
+};
+
+// services/cache.service.ts
+export const CacheService = {
+  async get(key: string): Promise<any> {
+    return await redis.get(key);
+  },
+
+  async set(key: string, value: any, ttl?: number): Promise<void> {
+    if (ttl) {
+      await redis.setex(key, ttl, JSON.stringify(value));
+    } else {
+      await redis.set(key, JSON.stringify(value));
+    }
+  },
+
+  async delete(key: string): Promise<void> {
+    await redis.del(key);
+  },
+
+  async exists(key: string): Promise<boolean> {
+    return (await redis.exists(key)) === 1;
+  }
+};
+
+// services/code-generation.service.ts
+// ARCHITECTURE DECISION: Code generation is a separate service
+// This keeps the logic centralized and reusable across all entities
+export const CodeGenerationService = {
+  generateCode(id: string, createdAt: Date): string {
+    // Simple and scalable: ID + timestamp approach
+    const combined = id + createdAt.getTime().toString();
+    return base62.encode(combined);
   }
 };
 ```
@@ -259,22 +549,53 @@ External Client → API Route → Model → Database
 ## Validation Strategy
 
 ### Zod Integration
-- **Shared schemas**: Same validation schemas across all interfaces
+- **Local schemas**: Validation schemas defined locally in each file where they're used
 - **Interface-specific handling**: Different error responses per interface
 - **Type safety**: Zod provides TypeScript types
+- **No shared schemas**: Avoid spreading validation logic across the application
+
+**Architecture Decision**: Validation schemas are defined locally in each action or API route file rather than being shared across the application. This approach:
+
+- ✅ **Keeps validation close to usage**: Schemas are defined where they're used
+- ✅ **Avoids coupling**: No shared validation files that create dependencies
+- ✅ **Enables flexibility**: Each interface can have its own validation requirements
+- ✅ **Simplifies maintenance**: Changes to validation don't affect other parts of the app
+- ✅ **Reduces complexity**: No need to manage shared schema exports/imports
 
 **Example**:
 ```typescript
-// utils/validation.ts
+// actions/brand.action.ts
 import { z } from 'zod';
 
-export const createBrandSchema = z.object({
+// Schema defined locally in the action file
+const createBrandSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   website: z.string().url('Invalid website URL')
 });
 
-// Used in actions, API routes, and forms
+export async function createBrand(data: unknown) {
+  const validated = createBrandSchema.parse(data);
+  // ... rest of the action
+}
+```
+
+```typescript
+// app/api/brand/route.ts
+import { z } from 'zod';
+
+// Schema defined locally in the API route file
+const createBrandSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  website: z.string().url('Invalid website URL')
+});
+
+export async function POST(request: Request) {
+  const data = await request.json();
+  const validated = createBrandSchema.parse(data);
+  // ... rest of the API route
+}
 ```
 
 ## Response Format Strategy
@@ -293,13 +614,13 @@ export const createBrandSchema = z.object({
 
 ### ID + Creation Timestamp Approach
 ```typescript
-// Simple and scalable code generation
-const generateCode = (id: string, createdAt: Date) => {
-  return base62(id + createdAt.getTime());
-};
+// ARCHITECTURE DECISION: Code generation is centralized in a service
+// This ensures consistency and reusability across all entities
+import { CodeGenerationService } from '@/services/code-generation.service';
 
-// Usage
-const brandCode = generateCode(brand.id, brand.createdAt);
+// Usage in models
+const brandCode = CodeGenerationService.generateBrandCode(brand.id, brand.createdAt);
+const affiliateCode = CodeGenerationService.generateAffiliateCode(affiliate.id, affiliate.createdAt);
 ```
 
 **Benefits**:
@@ -309,6 +630,8 @@ const brandCode = generateCode(brand.id, brand.createdAt);
 - ✅ **Debuggable**: Can reverse-engineer to get ID and creation time
 - ✅ **No database lookups**: Fast generation
 - ✅ **Memory efficient**: No need to store generated codes
+- ✅ **Centralized**: Single service handles all code generation
+- ✅ **Reusable**: Same logic for brands, affiliates, transactions, etc.
 
 ## Authentication Strategy
 
