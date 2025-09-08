@@ -6,6 +6,8 @@ This document provides a comprehensive reference for the Affiliate Portal API en
 
 The API follows RESTful conventions and uses JSON for data exchange. All endpoints return standardized response formats.
 
+**Note**: User authentication is handled via **Server Actions**, not API routes. API routes are only used for external access with API keys.
+
 ## Base URL
 
 ```
@@ -15,15 +17,22 @@ Production: https://your-domain.com/api
 
 ## Authentication
 
-### JWT Token
-Most endpoints require authentication via JWT token:
+### API Key Authentication
+All API endpoints require authentication via API key:
 
 ```http
-Authorization: Bearer <jwt_token>
+x-api-key: ak_1234567890abcdef
 ```
 
-### Cookie Authentication
-For browser-based requests, authentication is handled via secure httpOnly cookies.
+### User Authentication (Server Actions)
+User authentication is handled via **Server Actions**, not API routes:
+
+- **Login**: `POST /actions/auth/login`
+- **Register**: `POST /actions/auth/register`  
+- **Logout**: `POST /actions/auth/logout`
+- **Stop Impersonation**: `POST /actions/auth/stop-impersonation`
+
+See [Authentication Documentation](./AUTHENTICATION.md) for details.
 
 ## Response Format
 
@@ -57,78 +66,58 @@ For browser-based requests, authentication is handled via secure httpOnly cookie
 }
 ```
 
-## Endpoints
-
-### Authentication
-
-#### Login
-```http
-POST /api/auth/login
-```
-
-**Request Body:**
+### Validation Error Response
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123",
-  "userType": "brand" // or "affiliate", "admin"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user_123",
-      "email": "user@example.com",
-      "userType": "brand",
-      "name": "Brand Name"
-    },
-    "token": "jwt_token_here"
+  "success": false,
+  "error": "Validation failed",
+  "details": {
+    "email": ["Invalid email format"],
+    "name": ["Name is required"]
+  },
+  "meta": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "requestId": "req_123456"
   }
 }
 ```
 
-#### Logout
+## Endpoints
+
+### Referral Management
+
+#### Get Referral Links
 ```http
-POST /api/auth/logout
+GET /api/referral/links
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
-
-### Brands
-
-#### Get All Brands
+**Headers:**
 ```http
-GET /api/brands
+x-api-key: ak_1234567890abcdef
 ```
 
 **Query Parameters:**
-- `page` (optional): Page number for pagination
-- `limit` (optional): Number of items per page
-- `search` (optional): Search term for filtering
+- `page` (optional): Page number for pagination (default: 1)
+- `limit` (optional): Number of items per page (default: 10, max: 100)
+- `status` (optional): Filter by status (`active`, `inactive`, `expired`)
+- `campaignId` (optional): Filter by campaign ID
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "brands": [
+    "links": [
       {
-        "id": "brand_123",
-        "name": "Brand Name",
-        "email": "brand@example.com",
-        "website": "https://brand.com",
+        "id": "link_123",
+        "code": "abc123",
+        "campaignId": "campaign_456",
+        "targetUrl": "https://brand.com/special-offer",
         "status": "active",
-        "createdAt": "2024-01-15T10:30:00Z"
+        "clickCount": 25,
+        "conversionCount": 3,
+        "createdAt": "2024-01-15T10:30:00Z",
+        "expiresAt": "2024-02-15T10:30:00Z"
       }
     ],
     "pagination": {
@@ -141,9 +130,14 @@ GET /api/brands
 }
 ```
 
-#### Get Brand by ID
+#### Get Referral Link by ID
 ```http
-GET /api/brands/{id}
+GET /api/referral/links/{id}
+```
+
+**Headers:**
+```http
+x-api-key: ak_1234567890abcdef
 ```
 
 **Response:**
@@ -151,232 +145,128 @@ GET /api/brands/{id}
 {
   "success": true,
   "data": {
-    "id": "brand_123",
-    "name": "Brand Name",
-    "email": "brand@example.com",
-    "website": "https://brand.com",
+    "id": "link_123",
+    "code": "abc123",
+    "campaignId": "campaign_456",
+    "targetUrl": "https://brand.com/special-offer",
+    "status": "active",
+    "clickCount": 25,
+    "conversionCount": 3,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "expiresAt": "2024-02-15T10:30:00Z",
+    "campaign": {
+      "id": "campaign_456",
+      "name": "Summer Sale",
+      "description": "Summer promotion campaign"
+    }
+  }
+}
+```
+
+#### Generate Referral Link
+```http
+POST /api/referral/generate
+```
+
+**Headers:**
+```http
+x-api-key: ak_1234567890abcdef
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "campaignId": "campaign_456",
+  "targetUrl": "https://brand.com/special-offer",
+  "expiresAt": "2024-02-15T10:30:00Z",
+  "metadata": {
+    "source": "email_campaign",
+    "affiliateId": "affiliate_789"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "link_123",
+    "code": "abc123",
+    "url": "https://yourapp.com/link/abc123",
+    "campaignId": "campaign_456",
+    "targetUrl": "https://brand.com/special-offer",
     "status": "active",
     "createdAt": "2024-01-15T10:30:00Z",
-    "stats": {
-      "totalAffiliates": 15,
-      "totalRevenue": 12500.00,
-      "conversionRate": 3.2
-    }
-  }
-}
-```
-
-#### Create Brand
-```http
-POST /api/brands
-```
-
-**Request Body:**
-```json
-{
-  "name": "Brand Name",
-  "email": "brand@example.com",
-  "website": "https://brand.com"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "brand_123",
-    "name": "Brand Name",
-    "email": "brand@example.com",
-    "website": "https://brand.com",
-    "status": "pending",
-    "createdAt": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-#### Update Brand
-```http
-PUT /api/brands/{id}
-```
-
-**Request Body:**
-```json
-{
-  "name": "Updated Brand Name",
-  "website": "https://updated-brand.com"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "brand_123",
-    "name": "Updated Brand Name",
-    "email": "brand@example.com",
-    "website": "https://updated-brand.com",
-    "status": "active",
-    "updatedAt": "2024-01-15T11:30:00Z"
-  }
-}
-```
-
-#### Delete Brand
-```http
-DELETE /api/brands/{id}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Brand deleted successfully"
-}
-```
-
-### Affiliates
-
-#### Get All Affiliates
-```http
-GET /api/affiliates
-```
-
-**Query Parameters:**
-- `brandId` (optional): Filter by brand ID
-- `status` (optional): Filter by status
-- `page` (optional): Page number for pagination
-- `limit` (optional): Number of items per page
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "affiliates": [
-      {
-        "id": "affiliate_123",
-        "name": "Affiliate Name",
-        "email": "affiliate@example.com",
-        "brandId": "brand_123",
-        "status": "active",
-        "commissionRate": 0.05,
-        "createdAt": "2024-01-15T10:30:00Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "total": 50,
-      "totalPages": 5
-    }
-  }
-}
-```
-
-#### Create Affiliate
-```http
-POST /api/affiliates
-```
-
-**Request Body:**
-```json
-{
-  "name": "Affiliate Name",
-  "email": "affiliate@example.com",
-  "brandId": "brand_123",
-  "commissionRate": 0.05
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "affiliate_123",
-    "name": "Affiliate Name",
-    "email": "affiliate@example.com",
-    "brandId": "brand_123",
-    "status": "pending",
-    "commissionRate": 0.05,
-    "createdAt": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-### Referrals
-
-#### Get Referral by Code
-```http
-GET /api/referral/{code}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "code": "ref_123456",
-    "affiliateId": "affiliate_123",
-    "brandId": "brand_123",
-    "targetUrl": "https://brand.com/special-offer",
-    "isActive": true,
-    "clickCount": 25,
-    "conversionCount": 3
+    "expiresAt": "2024-02-15T10:30:00Z"
   }
 }
 ```
 
 #### Track Referral Click
 ```http
-POST /api/referral/{code}/click
+POST /api/referral/track
+```
+
+**Headers:**
+```http
+x-api-key: ak_1234567890abcdef
+Content-Type: application/json
 ```
 
 **Request Body:**
 ```json
 {
-  "userAgent": "Mozilla/5.0...",
+  "linkCode": "abc123",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   "ipAddress": "192.168.1.1",
-  "referrer": "https://google.com"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "redirectUrl": "https://brand.com/special-offer?ref=ref_123456",
-    "trackingId": "track_789"
+  "referrer": "https://google.com",
+  "subIds": {
+    "utm_source": "email",
+    "utm_campaign": "summer_sale"
   }
 }
 ```
 
-### Analytics
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "redirectUrl": "https://brand.com/special-offer?ref=abc123",
+    "trackingId": "track_789",
+    "clickId": "click_456"
+  }
+}
+```
 
-#### Get Brand Analytics
+#### Get Referral Statistics
 ```http
-GET /api/analytics/brand/{brandId}
+GET /api/referral/stats
+```
+
+**Headers:**
+```http
+x-api-key: ak_1234567890abcdef
 ```
 
 **Query Parameters:**
-- `startDate` (optional): Start date for analytics (ISO 8601)
-- `endDate` (optional): End date for analytics (ISO 8601)
-- `granularity` (optional): Data granularity (day, week, month)
+- `startDate` (optional): Start date for statistics (ISO 8601)
+- `endDate` (optional): End date for statistics (ISO 8601)
+- `granularity` (optional): Data granularity (`day`, `week`, `month`)
+- `campaignId` (optional): Filter by campaign ID
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "brandId": "brand_123",
     "period": {
       "startDate": "2024-01-01T00:00:00Z",
       "endDate": "2024-01-31T23:59:59Z"
     },
-    "metrics": {
+    "summary": {
       "totalClicks": 1250,
       "totalConversions": 45,
       "conversionRate": 3.6,
@@ -388,7 +278,17 @@ GET /api/analytics/brand/{brandId}
         "date": "2024-01-01",
         "clicks": 45,
         "conversions": 2,
-        "revenue": 500.00
+        "revenue": 500.00,
+        "commission": 25.00
+      }
+    ],
+    "topLinks": [
+      {
+        "linkId": "link_123",
+        "code": "abc123",
+        "clicks": 150,
+        "conversions": 8,
+        "revenue": 1200.00
       }
     ]
   }
@@ -402,21 +302,52 @@ GET /api/analytics/brand/{brandId}
 - `200` - Success
 - `201` - Created
 - `400` - Bad Request
-- `401` - Unauthorized
-- `403` - Forbidden
+- `401` - Unauthorized (Invalid API key)
+- `403` - Forbidden (Insufficient permissions)
 - `404` - Not Found
 - `422` - Validation Error
+- `429` - Rate Limited
 - `500` - Internal Server Error
 
-### Validation Errors
+### Common Error Responses
 
+#### Invalid API Key
 ```json
 {
   "success": false,
-  "error": "Validation failed",
+  "error": "Invalid API key",
+  "meta": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "requestId": "req_123456"
+  }
+}
+```
+
+#### Missing API Key
+```json
+{
+  "success": false,
+  "error": "API key required",
+  "meta": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "requestId": "req_123456"
+  }
+}
+```
+
+#### Rate Limited
+```json
+{
+  "success": false,
+  "error": "Rate limit exceeded",
   "details": {
-    "email": ["Invalid email format"],
-    "name": ["Name is required"]
+    "limit": 100,
+    "remaining": 0,
+    "resetTime": "2024-01-15T11:00:00Z"
+  },
+  "meta": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "requestId": "req_123456"
   }
 }
 ```
@@ -425,9 +356,9 @@ GET /api/analytics/brand/{brandId}
 
 API endpoints are rate limited to prevent abuse:
 
-- **Authentication endpoints**: 5 requests per minute
-- **General endpoints**: 100 requests per minute
-- **Analytics endpoints**: 20 requests per minute
+- **Referral endpoints**: 100 requests per minute
+- **Statistics endpoints**: 20 requests per minute
+- **Link generation**: 10 requests per minute
 
 Rate limit headers are included in responses:
 
@@ -437,15 +368,15 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1642248000
 ```
 
-## SDKs and Libraries
+## Usage Examples
 
 ### JavaScript/TypeScript
 ```typescript
 // Example usage with fetch
-const response = await fetch('/api/brands', {
+const response = await fetch('/api/referral/links', {
   method: 'GET',
   headers: {
-    'Authorization': `Bearer ${token}`,
+    'x-api-key': 'ak_1234567890abcdef',
     'Content-Type': 'application/json'
   }
 });
@@ -455,42 +386,45 @@ const data = await response.json();
 
 ### cURL Examples
 ```bash
-# Get all brands
-curl -X GET "http://localhost:3000/api/brands" \
-  -H "Authorization: Bearer your_jwt_token"
+# Get referral links
+curl -X GET "http://localhost:3000/api/referral/links" \
+  -H "x-api-key: ak_1234567890abcdef"
 
-# Create a brand
-curl -X POST "http://localhost:3000/api/brands" \
-  -H "Authorization: Bearer your_jwt_token" \
+# Generate referral link
+curl -X POST "http://localhost:3000/api/referral/generate" \
+  -H "x-api-key: ak_1234567890abcdef" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Brand Name","email":"brand@example.com"}'
+  -d '{"campaignId":"campaign_456","targetUrl":"https://brand.com/offer"}'
+
+# Track referral click
+curl -X POST "http://localhost:3000/api/referral/track" \
+  -H "x-api-key: ak_1234567890abcdef" \
+  -H "Content-Type: application/json" \
+  -d '{"linkCode":"abc123","userAgent":"Mozilla/5.0...","ipAddress":"192.168.1.1"}'
 ```
 
-## Webhooks
+## API Key Management
 
-### Referral Conversion Webhook
-```http
-POST /api/webhooks/referral-conversion
+### Generating API Keys
+API keys are generated through the brand dashboard and stored in the brands table:
+
+```typescript
+// API key format
+ak_1234567890abcdef
+
+// Generated via brand dashboard
+const apiKey = await generateApiKey(brandId)
 ```
 
-**Payload:**
-```json
-{
-  "event": "referral.conversion",
-  "data": {
-    "referralCode": "ref_123456",
-    "affiliateId": "affiliate_123",
-    "brandId": "brand_123",
-    "conversionValue": 100.00,
-    "commission": 5.00,
-    "timestamp": "2024-01-15T10:30:00Z"
-  }
-}
-```
+### API Key Security
+- **Store securely**: API keys should be stored securely and not exposed in client-side code
+- **Rotate regularly**: Consider rotating API keys periodically
+- **Monitor usage**: Track API key usage for security and billing purposes
 
 ## Support
 
 For API support:
 - Check the [Architecture Documentation](./ARCHITECTURE.md)
+- Check the [Authentication Documentation](./AUTHENTICATION.md)
 - Open an [issue](https://github.com/your-org/affiliate-portal/issues)
 - Contact the development team

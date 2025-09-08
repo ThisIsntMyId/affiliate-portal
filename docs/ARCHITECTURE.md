@@ -26,23 +26,118 @@ Each interface (API Routes, Actions, Pages) is optimized for its specific purpos
 
 ## Directory Structure
 
+### App Router Structure (Next.js 13+)
+
 ```
 src/
 ├── app/                    # Next.js App Router
+│   ├── (admin)/            # Admin portal routes
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx
+│   │   │   ├── register/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (dashboard)/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   └── brands/
+│   │       ├── page.tsx
+│   │       ├── [id]/
+│   │       │   ├── page.tsx
+│   │       │   └── edit/page.tsx
+│   │       └── create/page.tsx
+│   │
+│   ├── (brand)/            # Brand portal routes
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx
+│   │   │   ├── register/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (dashboard)/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── affiliates/
+│   │   │   ├── page.tsx
+│   │   │   ├── [id]/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── edit/page.tsx
+│   │   │   └── create/page.tsx
+│   │   ├── campaigns/
+│   │   │   ├── page.tsx
+│   │   │   ├── [id]/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── edit/page.tsx
+│   │   │   └── create/page.tsx
+│   │   ├── reports/
+│   │   │   ├── page.tsx
+│   │   │   └── [id]/page.tsx
+│   │   ├── payouts/
+│   │   │   ├── page.tsx
+│   │   │   ├── [id]/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── edit/page.tsx
+│   │   │   └── create/page.tsx
+│   │   ├── refer-earn-settings/page.tsx
+│   │   ├── affiliate-signup-settings/page.tsx
+│   │   └── general-settings/page.tsx
+│   │
+│   ├── (affiliate)/        # Affiliate portal routes (with brand context)
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx      # /affiliate/login?brand=acme
+│   │   │   ├── register/page.tsx   # /affiliate/register?brand=acme
+│   │   │   └── layout.tsx
+│   │   ├── (dashboard)/
+│   │   │   ├── layout.tsx          # Handles brand context
+│   │   │   └── page.tsx            # /affiliate/dashboard?brand=acme
+│   │   ├── links/
+│   │   │   ├── page.tsx
+│   │   │   ├── [id]/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── edit/page.tsx
+│   │   │   └── create/page.tsx
+│   │   ├── reports/
+│   │   │   ├── page.tsx
+│   │   │   └── [id]/page.tsx
+│   │   ├── payouts/
+│   │   │   ├── page.tsx
+│   │   │   └── [id]/page.tsx
+│   │   └── general-settings/page.tsx
+│   │
+│   ├── (referral)/         # Referral access routes
+│   │   └── referral/page.tsx
+│   │
+│   ├── link/               # Public link redirects
+│   │   └── [linkCode]/page.tsx     # /link/abc123
+│   │
+│   └── api/                # API Routes (External access only)
+│       └── referral/
+│           ├── links/route.ts
+│           ├── links/[id]/route.ts
+│           ├── stats/route.ts
+│           ├── track/route.ts
+│           └── generate/route.ts
+│
+├── actions/                # Server Actions (User authentication)
+│   ├── auth/
+│   │   ├── login.ts
+│   │   ├── register.ts
+│   │   ├── logout.ts
+│   │   └── stop-impersonation.ts
 │   ├── admin/
-│   │   └── dashboard/page.tsx
+│   │   └── brands.ts
 │   ├── brand/
-│   │   └── dashboard/page.tsx
-│   ├── affiliate/
-│   │   └── dashboard/page.tsx
-│   └── api/                # API Routes (Next.js convention)
-│       └── brand/route.ts
+│   │   ├── affiliates.ts
+│   │   ├── campaigns.ts
+│   │   └── payouts.ts
+│   └── affiliate/
+│       ├── links.ts
+│       └── reports.ts
+│
 ├── models/                 # Data access + business logic
 │   ├── brand.model.ts
-│   └── affiliate.model.ts
-├── actions/                # Server Actions (like controllers)
-│   ├── brand.action.ts
-│   └── affiliate.action.ts
+│   ├── affiliate.model.ts
+│   ├── campaign.model.ts
+│   ├── link.model.ts
+│   └── payout.model.ts
+│
 ├── services/               # Third-party integrations
 │   ├── email.service.ts
 │   ├── sms.service.ts
@@ -56,17 +151,70 @@ src/
 │       ├── formatting.ts
 │       ├── validation.ts
 │       └── utils.ts
-├── auth/                   # Authentication module
-│   ├── jwt.ts
-│   ├── user.ts
-│   └── middleware.ts
+│
+├── lib/                    # Core utilities
+│   ├── auth.ts             # Authentication utilities
+│   ├── api-auth.ts         # API key validation
+│   └── utils.ts
+│
 ├── db/                     # Database
 │   ├── db.ts
 │   └── schema.ts
+│
 └── utils/                  # Utilities
     ├── response.ts
     └── validation.ts
 ```
+
+### Route Groups Explanation
+
+**Route Groups** `(groupName)` are Next.js 13+ features that allow organizing routes without affecting the URL structure:
+
+- **`(admin)`**: Admin portal routes - `/admin/*`
+- **`(brand)`**: Brand portal routes - `/brand/*`  
+- **`(affiliate)`**: Affiliate portal routes - `/affiliate/*` (with brand context)
+- **`(referral)`**: Referral access routes - `/referral/*`
+
+### Brand Context Resolution
+
+Affiliate routes use **brand context** via query parameters and middleware rewriting:
+
+1. **URL with brand**: `/affiliate/login?brand=acme`
+2. **Middleware rewrite**: `/affiliate/login?brand=acme` → `/brand/acme/affiliate/login`
+3. **Clean URLs**: After rewrite, URLs appear clean to users
+4. **Brand context**: Available in all affiliate pages via `params.brandCode`
+
+### Folder Structure Benefits
+
+✅ **Clear separation** by user type (admin, brand, affiliate)  
+✅ **Consistent patterns** across all portals  
+✅ **Brand context** automatically available for affiliates  
+✅ **Scalable structure** - easy to add new modules  
+✅ **Clean URLs** after middleware rewrite  
+✅ **Single codebase** for affiliate functionality  
+
+### Adding New Modules
+
+To add a new module to any portal:
+
+1. **Admin Portal**: Add to `(admin)/new-module/`
+2. **Brand Portal**: Add to `(brand)/new-module/`
+3. **Affiliate Portal**: Add to `(affiliate)/new-module/`
+
+**Standard module structure:**
+```
+new-module/
+├── page.tsx           # List/view page
+├── [id]/
+│   ├── page.tsx       # View details
+│   └── edit/page.tsx  # Edit form
+└── create/page.tsx    # Create form
+```
+
+**Required files for each module:**
+- **Model**: `models/new-module.model.ts`
+- **Actions**: `actions/new-module.ts` (or appropriate category)
+- **API Routes**: `api/new-module/` (if external access needed)
 
 ## Architecture Layers
 
