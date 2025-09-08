@@ -328,15 +328,181 @@ const buttonVariants = {
 
 ## Usage Examples
 
+## Business Components
+
+### ActionButton
+A button component that handles asynchronous actions with loading states and optional confirmation dialogs.
+
+```typescript
+import { ActionButton } from '@/components/ActionButton';
+import { Trash2 } from 'lucide-react';
+
+// Basic usage
+<ActionButton
+  onClick={async () => {
+    await saveData();
+  }}
+  loadingText="Saving..."
+>
+  Save Changes
+</ActionButton>
+
+// With confirmation dialog
+<ActionButton
+  onClick={async () => {
+    await deleteUser();
+  }}
+  confirmation={{
+    enabled: true,
+    title: "Delete User",
+    description: "This action cannot be undone. Are you sure you want to delete this user?",
+    confirmText: "Delete",
+    cancelText: "Cancel",
+    icon: <Trash2 className="h-6 w-6 text-red-500" />
+  }}
+  variant="destructive"
+>
+  Delete User
+</ActionButton>
+```
+
+**Props:**
+- `onClick`: Async function to execute
+- `loadingText`: Text to show during loading (default: "Processing...")
+- `confirmation`: Optional confirmation dialog configuration
+- All standard Button props are supported
+
+### AlertBanner
+A banner component for displaying alerts with optional call-to-action buttons.
+
+```typescript
+import { AlertBanner } from '@/components/AlertBanner';
+
+// Info alert with link
+<AlertBanner
+  title="New Feature Available"
+  description="Check out our latest dashboard improvements."
+  buttonTitle="Learn More"
+  buttonUrl="/features"
+  style="info"
+/>
+
+// Warning alert with action
+<AlertBanner
+  title="Payment Required"
+  description="Your subscription will expire in 3 days."
+  buttonTitle="Renew Now"
+  buttonAction={() => handleRenewal()}
+  style="warning"
+  onClose={() => setShowAlert(false)}
+/>
+
+// Success alert
+<AlertBanner
+  title="Payment Successful"
+  description="Your payment has been processed successfully."
+  style="success"
+/>
+```
+
+**Props:**
+- `title`: Alert title (required)
+- `description`: Alert description (required)
+- `style`: Alert style - "info" | "warning" | "danger" | "success"
+- `buttonTitle`: Text for CTA button
+- `buttonUrl`: Link URL for CTA button
+- `buttonAction`: Function for CTA button action
+- `icon`: Custom icon (optional)
+- `onClose`: Function to handle alert dismissal
+
+### ContentCard
+A simplified card wrapper that reduces boilerplate for common card patterns.
+
+```typescript
+import { ContentCard } from '@/components/ContentCard';
+
+// Simple card with title and content
+<ContentCard
+  title="User Profile"
+  description="Manage your account settings"
+  content={
+    <div className="space-y-4">
+      <p>Name: John Doe</p>
+      <p>Email: john@example.com</p>
+    </div>
+  }
+/>
+
+// Card with footer actions
+<ContentCard
+  title="Payment History"
+  content={<PaymentTable data={payments} />}
+  footer={
+    <div className="flex justify-end gap-2">
+      <Button variant="outline">Export</Button>
+      <Button>View All</Button>
+    </div>
+  }
+/>
+```
+
+**Props:**
+- `title`: Card title (optional)
+- `description`: Card description (optional)
+- `content`: Main card content (optional)
+- `footer`: Card footer content (optional)
+- `className`: Additional CSS classes
+
+### StatusIndicator
+A badge component for displaying status information with consistent styling.
+
+```typescript
+import { StatusIndicator } from '@/components/StatusIndicator';
+
+// Basic status indicators
+<StatusIndicator status="success">Active</StatusIndicator>
+<StatusIndicator status="warning">Pending</StatusIndicator>
+<StatusIndicator status="error">Failed</StatusIndicator>
+<StatusIndicator status="info">Processing</StatusIndicator>
+<StatusIndicator status="neutral">Inactive</StatusIndicator>
+
+// With custom label
+<StatusIndicator status="success" label="Approved" />
+
+// Without icon
+<StatusIndicator status="success" showIcon={false}>
+  Completed
+</StatusIndicator>
+```
+
+**Props:**
+- `status`: Status type - "success" | "warning" | "error" | "info" | "neutral"
+- `label`: Custom label text
+- `icon`: Custom icon (optional)
+- `showIcon`: Whether to show icon (default: true)
+- All standard Badge props are supported
+
+## Usage Examples
+
 ### Creating a Dashboard Page
 ```typescript
 import { StatCard } from '@/components/StatCard';
 import { BarChart } from '@/components/charts/BarChart';
+import { ContentCard } from '@/components/ContentCard';
+import { StatusIndicator } from '@/components/StatusIndicator';
+import { AlertBanner } from '@/components/AlertBanner';
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
+      
+      {/* Alert Banner */}
+      <AlertBanner
+        title="System Maintenance"
+        description="Scheduled maintenance will occur tonight from 2-4 AM EST."
+        style="warning"
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
@@ -358,6 +524,18 @@ export default function DashboardPage() {
           changeType="negative"
         />
       </div>
+      
+      <ContentCard
+        title="Recent Transactions"
+        description="Latest payment activity"
+        content={<TransactionTable />}
+        footer={
+          <div className="flex justify-between items-center">
+            <StatusIndicator status="success">All systems operational</StatusIndicator>
+            <Button variant="outline">View All</Button>
+          </div>
+        }
+      />
       
       <BarChart
         data={revenueData}
