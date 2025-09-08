@@ -9,7 +9,9 @@ export function BaseLayout({
   children, 
   navigationConfig, 
   logo = '[Brand Logo]',
-  backgroundColor = 'gray-50'
+  backgroundColor = 'gray-50',
+  sidebarHeaderSlot,
+  sidebarFooterSlot
 }: BaseLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -36,7 +38,11 @@ export function BaseLayout({
         lg:translate-x-0 lg:static lg:inset-0 lg:flex-shrink-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <Sidebar navigationConfig={navigationConfig} />
+        <Sidebar 
+          navigationConfig={navigationConfig} 
+          headerSlot={sidebarHeaderSlot}
+          footerSlot={sidebarFooterSlot}
+        />
       </div>
 
       {/* Main Content - Scrollable */}

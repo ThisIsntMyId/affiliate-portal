@@ -7,9 +7,11 @@ import { NavigationConfig, MenuItem } from '@/types/navigation';
 
 interface SidebarProps {
   navigationConfig: NavigationConfig;
+  headerSlot?: React.ReactNode;
+  footerSlot?: React.ReactNode;
 }
 
-export function Sidebar({ navigationConfig }: SidebarProps) {
+export function Sidebar({ navigationConfig, headerSlot, footerSlot }: SidebarProps) {
   const pathname = usePathname();
 
   const groupedItems = useMemo(() => {
@@ -56,10 +58,12 @@ export function Sidebar({ navigationConfig }: SidebarProps) {
 
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col h-full">
-      {/* Logo Section - Fixed */}
-      <div className="p-6 border-b border-gray-700 flex-shrink-0">
-        <h2 className="text-xl font-bold text-white">[Brand Logo]</h2>
-      </div>
+      {/* Header Slot - Fixed */}
+      {headerSlot && (
+        <div className="flex-shrink-0 border-b border-gray-700">
+          {headerSlot}
+        </div>
+      )}
       
       {/* Navigation - Scrollable */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto overflow-x-hidden">
@@ -82,6 +86,13 @@ export function Sidebar({ navigationConfig }: SidebarProps) {
           </div>
         ))}
       </nav>
+
+      {/* Footer Slot - Fixed */}
+      {footerSlot && (
+        <div className="flex-shrink-0 border-t border-gray-700">
+          {footerSlot}
+        </div>
+      )}
     </aside>
   );
 }

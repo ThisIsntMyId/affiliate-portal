@@ -16,4 +16,6 @@ export interface BaseLayoutProps {
   navigationConfig: NavigationConfig;
   logo?: React.ReactNode | string;
   backgroundColor?: 'white' | 'gray-50' | 'gray-100' | string;
+  sidebarHeaderSlot?: React.ReactNode;
+  sidebarFooterSlot?: React.ReactNode;
 }
