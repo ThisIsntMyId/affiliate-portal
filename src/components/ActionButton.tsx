@@ -74,6 +74,7 @@ export function ActionButton({
       <Button
         onClick={handleClick}
         disabled={disabled || isLoading}
+        className="cursor-pointer"
         {...props}
       >
         {isLoading ? (
@@ -99,10 +100,10 @@ export function ActionButton({
               <DialogDescription>{confirmation.description}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} className="cursor-pointer">
                 {confirmation.cancelText || "Cancel"}
               </Button>
-              <Button onClick={handleConfirm} disabled={isLoading}>
+              <Button onClick={handleConfirm} disabled={isLoading} className="cursor-pointer">
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />

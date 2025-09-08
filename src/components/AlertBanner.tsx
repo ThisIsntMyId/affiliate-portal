@@ -81,7 +81,7 @@ export function AlertBanner({
                 <Link
                   href={buttonUrl}
                   className={cn(
-                    "inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md transition-colors duration-200",
+                    "inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer",
                     config.button
                   )}
                 >
@@ -91,7 +91,7 @@ export function AlertBanner({
                 <Button
                   onClick={buttonAction}
                   size="sm"
-                  className={cn("text-sm font-medium", config.button)}
+                  className={cn("text-sm font-medium cursor-pointer", config.button)}
                 >
                   {buttonTitle}
                 </Button>
@@ -104,7 +104,7 @@ export function AlertBanner({
                 type="button"
                 onClick={onClose}
                 className={cn(
-                  "inline-flex rounded-md p-1.5 hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent",
+                  "inline-flex rounded-md p-1.5 hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent cursor-pointer",
                   config.icon
                 )}
               >
