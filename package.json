@@ -9,7 +9,10 @@
     "lint": "next lint",
     "db:gen": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "migrate:local": "dotenv -e .env -- drizzle-kit migrate",
+    "migrate:dev": "dotenv -e .env.dev -- drizzle-kit migrate",
+    "migrate:prod": "dotenv -e .env.prod -- drizzle-kit migrate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -87,6 +90,7 @@
     "@types/pg": "^8.15.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^10.0.0",
     "drizzle-kit": "^0.31.4",
     "eslint": "^9",
     "eslint-config-next": "15.4.7",
