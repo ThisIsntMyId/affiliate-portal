@@ -604,6 +604,7 @@ function ImageField({ config, form }: { config: FormFieldConfig; form: FormType 
             files.map((file, i) => (
               <div key={i} className="flex items-center space-x-2 p-2 border rounded">
                 {previews[i] && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img 
                     src={previews[i]} 
                     alt={file.name} 
