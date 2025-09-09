@@ -137,9 +137,10 @@ export function RichTextEditor({
           // Links
           '[&_a]:text-blue-600 [&_a]:no-underline hover:[&_a]:underline',
           // Tables
-          '[&_table]:w-full [&_table]:border-collapse [&_table]:mb-4 [&_table]:text-sm',
-          '[&_th]:bg-gray-50 [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:border [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left',
-          '[&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2',
+          '[&_table]:w-full [&_table]:border-collapse [&_table]:mb-4 [&_table]:text-sm [&_table]:border [&_table]:border-gray-200 [&_table]:rounded-lg [&_table]:overflow-hidden',
+          '[&_th]:bg-gray-50 [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:border [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:bg-gray-100',
+          '[&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2 [&_td]:bg-white',
+          '[&_tr:hover_td]:bg-gray-50 [&_tr:hover_th]:bg-gray-100',
           // Images
           '[&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:mb-4',
           disabled && 'opacity-50 cursor-not-allowed'

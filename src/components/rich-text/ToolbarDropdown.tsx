@@ -15,10 +15,11 @@ interface DropdownItem {
   label: string
   onClick: () => void
   isActive?: boolean
+  disabled?: boolean
 }
 
 interface ToolbarDropdownProps {
-  trigger: string
+  trigger: string | React.ReactNode
   items: DropdownItem[]
   className?: string
 }
@@ -34,11 +35,12 @@ export function ToolbarDropdown({ trigger, items, className }: ToolbarDropdownPr
           size="sm"
           className={cn(
             'h-8 px-2 text-sm font-medium hover:bg-gray-200',
+            typeof trigger === 'string' && 'justify-start',
             className
           )}
         >
           {trigger}
-          <ChevronDown className="ml-1 h-3 w-3" />
+          {typeof trigger === 'string' && <ChevronDown className="ml-1 h-3 w-3" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-40">
@@ -46,12 +48,16 @@ export function ToolbarDropdown({ trigger, items, className }: ToolbarDropdownPr
           <DropdownMenuItem
             key={index}
             onClick={() => {
-              item.onClick()
-              setOpen(false)
+              if (!item.disabled) {
+                item.onClick()
+                setOpen(false)
+              }
             }}
+            disabled={item.disabled}
             className={cn(
               'cursor-pointer',
-              item.isActive && 'bg-gray-100 font-medium'
+              item.isActive && 'bg-gray-100 font-medium',
+              item.disabled && 'opacity-50 cursor-not-allowed'
             )}
           >
             {item.label}

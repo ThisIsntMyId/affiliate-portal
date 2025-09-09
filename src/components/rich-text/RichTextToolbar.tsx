@@ -16,8 +16,7 @@ import {
   Code2,
   Link,
   Image,
-  Table,
-  Download
+  Table
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -210,11 +209,50 @@ export function RichTextToolbar({ editor, variant }: RichTextToolbarProps) {
               <Image className="w-4 h-4" />
             </ToolbarButton>
 
-            <ToolbarButton
-              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-            >
-              <Table className="w-4 h-4" />
-            </ToolbarButton>
+            <ToolbarDropdown
+              trigger={<Table className="w-4 h-4" />}
+              items={[
+                {
+                  label: 'Insert Table',
+                  onClick: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+                },
+                {
+                  label: 'Add Row Above',
+                  onClick: () => editor.chain().focus().addRowBefore().run(),
+                  disabled: !editor.can().addRowBefore(),
+                },
+                {
+                  label: 'Add Row Below',
+                  onClick: () => editor.chain().focus().addRowAfter().run(),
+                  disabled: !editor.can().addRowAfter(),
+                },
+                {
+                  label: 'Add Column Left',
+                  onClick: () => editor.chain().focus().addColumnBefore().run(),
+                  disabled: !editor.can().addColumnBefore(),
+                },
+                {
+                  label: 'Add Column Right',
+                  onClick: () => editor.chain().focus().addColumnAfter().run(),
+                  disabled: !editor.can().addColumnAfter(),
+                },
+                {
+                  label: 'Delete Row',
+                  onClick: () => editor.chain().focus().deleteRow().run(),
+                  disabled: !editor.can().deleteRow(),
+                },
+                {
+                  label: 'Delete Column',
+                  onClick: () => editor.chain().focus().deleteColumn().run(),
+                  disabled: !editor.can().deleteColumn(),
+                },
+                {
+                  label: 'Delete Table',
+                  onClick: () => editor.chain().focus().deleteTable().run(),
+                  disabled: !editor.can().deleteTable(),
+                },
+              ]}
+            />
 
             <ToolbarButton
               onClick={() => editor.chain().focus().toggleBlockquote().run()}

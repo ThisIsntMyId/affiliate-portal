@@ -9,6 +9,7 @@ interface ToolbarButtonProps {
   disabled?: boolean
   children: React.ReactNode
   className?: string
+  title?: string
 }
 
 export function ToolbarButton({
@@ -17,6 +18,7 @@ export function ToolbarButton({
   disabled = false,
   children,
   className,
+  title,
 }: ToolbarButtonProps) {
   return (
     <Button
@@ -24,6 +26,7 @@ export function ToolbarButton({
       size="sm"
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={cn(
         'h-8 w-8 p-0 hover:bg-gray-200',
         isActive && 'bg-gray-200 text-gray-900',
