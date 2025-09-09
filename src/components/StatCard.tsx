@@ -30,7 +30,6 @@ export function StatCard({
   description,
   trend,
   trendValue,
-  color,
   progress,
   progressColor,
   size = "medium",

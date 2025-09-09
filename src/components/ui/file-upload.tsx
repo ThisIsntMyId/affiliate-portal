@@ -29,7 +29,6 @@ interface FileUploaderItemProps {
 }
 
 export function FileUploader({
-  value,
   onValueChange,
   dropzoneOptions,
   children,
@@ -75,7 +74,7 @@ export function FileUploaderContent({ children, className }: FileUploaderContent
   )
 }
 
-export function FileUploaderItem({ children, index, className }: FileUploaderItemProps) {
+export function FileUploaderItem({ children, className }: FileUploaderItemProps) {
   return (
     <div className={cn("flex items-center gap-2 p-2 bg-muted rounded-md", className)}>
       {children}

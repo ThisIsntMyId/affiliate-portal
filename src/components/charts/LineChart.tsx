@@ -5,13 +5,6 @@ import React from 'react';
 import { CartesianGrid, Line, LineChart as RechartsLineChart, XAxis } from "recharts"
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
@@ -44,7 +37,6 @@ export function LineChart({
   height = 300,
   width,
   className = "",
-  showLegend = false,
   showTooltip = true,
   showGrid = true,
   strokeWidth = 2,

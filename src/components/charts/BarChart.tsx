@@ -5,13 +5,6 @@ import React from 'react';
 import { Bar, BarChart as RechartsBarChart, CartesianGrid, XAxis } from "recharts"
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   ChartConfig,
   ChartContainer,
   ChartLegend,

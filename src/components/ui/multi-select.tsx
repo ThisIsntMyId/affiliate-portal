@@ -25,7 +25,6 @@ export function MultiSelect({
   options,
   selected,
   onChange,
-  className,
   placeholder = "Select options...",
   disabled = false,
 }: MultiSelectProps) {

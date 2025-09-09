@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { RichTextEditor, RichTextVariant } from '@/components/RichTextEditor'
+import { RichTextEditor } from '@/components/RichTextEditor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -23,7 +23,6 @@ const sampleContent = `
 export default function RichTextEditorDemo() {
   const [minimalContent, setMinimalContent] = useState('')
   const [fullContent, setFullContent] = useState(sampleContent)
-  const [variant, setVariant] = useState<RichTextVariant>('minimal')
 
   const handleMinimalChange = (html: string) => {
     setMinimalContent(html)

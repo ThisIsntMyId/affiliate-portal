@@ -2,10 +2,7 @@
 
 import { Editor } from '@tiptap/react'
 import { RichTextVariant } from '../RichTextEditor'
-import { ToolbarButton } from './ToolbarButton'
-import { ToolbarDropdown } from './ToolbarDropdown'
-import { ToolbarSeparator } from './ToolbarSeparator'
-import { ToolbarGroup } from './ToolbarGroup'
+
 import { 
   AlignLeft, 
   AlignCenter, 
@@ -15,10 +12,14 @@ import {
   Quote, 
   Code2,
   Link,
-  Image,
+  Image as LucideImage,
   Table
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { ToolbarGroup } from './ToolbarGroup'
+import { ToolbarButton } from './ToolbarButton'
+import { ToolbarDropdown } from './ToolbarDropdown'
+import { ToolbarSeparator } from './ToolbarSeparator'
 
 interface RichTextToolbarProps {
   editor: Editor
@@ -206,7 +207,7 @@ export function RichTextToolbar({ editor, variant }: RichTextToolbarProps) {
                 }
               }}
             >
-              <Image className="w-4 h-4" />
+              <LucideImage className="w-4 h-4" />
             </ToolbarButton>
 
             <ToolbarDropdown

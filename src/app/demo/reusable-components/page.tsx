@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Trash2, Save, Download, AlertTriangle, CheckCircle, XCircle, Info, User, CreditCard, TrendingUp, Settings } from "lucide-react"
+import { Trash2, Save, Download, User, CreditCard, TrendingUp, Settings } from "lucide-react"
 import { ActionButton } from "@/components/ActionButton"
 import { AlertBanner } from "@/components/AlertBanner"
 import { ContentCard } from "@/components/ContentCard"

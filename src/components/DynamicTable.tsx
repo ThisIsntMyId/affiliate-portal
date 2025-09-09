@@ -120,6 +120,7 @@ function renderCell(column: ColumnConfig, row: Record<string, unknown>, index: n
       const imageSrc = getNestedValue(row, column.field)
       if (!imageSrc || typeof imageSrc !== 'string') return '-'
       return (
+        // eslint-disable-next-line @next/next/no-img-element
         <img 
           src={imageSrc} 
           alt="" 

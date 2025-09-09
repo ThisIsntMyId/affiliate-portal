@@ -2,15 +2,8 @@
 
 import React from 'react';
 
-import { LabelList, Pie, PieChart as RechartsPieChart } from "recharts"
+import { Pie, PieChart as RechartsPieChart } from "recharts"
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   ChartConfig,
   ChartContainer,
@@ -44,7 +37,6 @@ export function PieChart({
   width,
   height = 400,
   className = "",
-  showLegend = false,
   showTooltip = true,
   innerRadius = 0,
   outerRadius = 80,
@@ -60,7 +52,7 @@ export function PieChart({
   });
 
   // Create chart config
-  const chartConfig: ChartConfig = transformedData.reduce((config, item, index) => {
+  const chartConfig: ChartConfig = transformedData.reduce((config, item) => {
     config[item.name.toLowerCase().replace(/\s+/g, '')] = {
       label: item.name,
       color: item.fill,
