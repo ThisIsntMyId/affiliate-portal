@@ -5,6 +5,8 @@ export interface MenuItem {
   group?: string;
   isActive?: boolean;
   isExternal?: boolean;
+  openInNewTab?: boolean;
+  children?: MenuItem[];
 }
 
 export interface NavigationConfig {

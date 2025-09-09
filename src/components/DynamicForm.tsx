@@ -64,6 +64,7 @@ export interface DynamicFormProps {
   submitButtonAlign?: 'full' | 'left' | 'right'
   title?: string
   description?: string
+  showCard?: boolean
 }
 
 // Schema Generation
@@ -692,7 +693,7 @@ function ComboboxField({ config, form }: { config: FormFieldConfig; form: FormTy
 }
 
 // Main Component
-export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', title, description }: DynamicFormProps) {
+export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', title, description, showCard = true }: DynamicFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -736,6 +737,51 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
     }
   }
   
+  const formContent = (
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      {/* Form-level error display */}
+      {formError && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+          <p className="text-sm text-destructive">{formError}</p>
+        </div>
+      )}
+      
+      {/* Render form fields */}
+      {config.map((field, index) => (
+        <div key={field.name || index}>
+          {renderField(field, form)}
+        </div>
+      ))}
+      
+      {/* Submit Button Container */}
+      <div className={cn(
+        "flex w-full",
+        submitButtonAlign === 'full' && "w-full",
+        submitButtonAlign === 'left' && "justify-start",
+        submitButtonAlign === 'right' && "justify-end"
+      )}>
+        <Button 
+          type="submit" 
+          className={`cursor-pointer ${submitButtonAlign === 'full' ? 'w-full' : ''}`}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {loadingText || 'Submitting...'}
+            </>
+          ) : (
+            submitText || 'Submit'
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+
+  if (!showCard) {
+    return formContent
+  }
+
   return (
     <Card className="w-full">
       {(title || description) && (
@@ -745,44 +791,7 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
         </CardHeader>
       )}
       <CardContent>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          {/* Form-level error display */}
-          {formError && (
-            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive">{formError}</p>
-            </div>
-          )}
-          
-          {/* Render form fields */}
-          {config.map((field, index) => (
-            <div key={field.name || index}>
-              {renderField(field, form)}
-            </div>
-          ))}
-          
-          {/* Submit Button Container */}
-          <div className={cn(
-            "flex w-full",
-            submitButtonAlign === 'full' && "w-full",
-            submitButtonAlign === 'left' && "justify-start",
-            submitButtonAlign === 'right' && "justify-end"
-          )}>
-            <Button 
-              type="submit" 
-              className={`cursor-pointer ${submitButtonAlign === 'full' ? 'w-full' : ''}`}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {loadingText || 'Submitting...'}
-                </>
-              ) : (
-                submitText || 'Submit'
-              )}
-            </Button>
-          </div>
-        </form>
+        {formContent}
       </CardContent>
     </Card>
   )

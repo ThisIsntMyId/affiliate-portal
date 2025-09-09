@@ -40,21 +40,31 @@ export function Sidebar({ navigationConfig, headerSlot, footerSlot }: SidebarPro
     return IconComponent ? <IconComponent className="w-5 h-5" /> : null;
   };
 
-  const NavigationItem = ({ item }: { item: MenuItem }) => (
-    <a
-      href={item.url}
-      className={`
-        flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-        ${item.isActive 
-          ? 'bg-blue-600 text-white' 
-          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-        }
-      `}
-    >
-      {renderIcon(item.icon)}
-      <span className="ml-3">{item.title}</span>
-    </a>
-  );
+  const NavigationItem = ({ item }: { item: MenuItem }) => {
+    const linkProps = item.openInNewTab ? {
+      href: item.url,
+      target: '_blank',
+      rel: 'noopener noreferrer'
+    } : {
+      href: item.url
+    };
+
+    return (
+      <a
+        {...linkProps}
+        className={`
+          flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+          ${item.isActive 
+            ? 'bg-blue-600 text-white' 
+            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+          }
+        `}
+      >
+        {renderIcon(item.icon)}
+        <span className="ml-3">{item.title}</span>
+      </a>
+    );
+  };
 
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col h-full">
