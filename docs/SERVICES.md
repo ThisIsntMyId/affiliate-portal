@@ -394,7 +394,10 @@ await emailService.send('user@example.com', 'Welcome', 'Welcome message')
 await smsService.send('+1234567890', 'Your code is 123456')
 
 // Storage service
-const url = await storageService.upload(file, 'path/to/file.jpg')
+await storageService.write('path/to/file.jpg', fileBuffer)
+const content = await storageService.read('path/to/file.jpg')
+const publicUrl = await storageService.publicUrl('path/to/file.jpg')
+const exists = await storageService.fileExists('path/to/file.jpg')
 await storageService.delete('path/to/file.jpg')
 
 // Cache service

@@ -37,6 +37,7 @@ const envSchema = z.object({
   // Storage
   STORAGE_DRIVER: z.enum(["s3", "local"]).default("local"),
   LOCAL_PATH: z.string().optional(),
+  LOCAL_PUBLIC_URL: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_REGION: z.string().optional(),
@@ -108,6 +109,7 @@ export const config = {
     },
     local: {
       path: env.LOCAL_PATH,
+      publicUrl: env.LOCAL_PUBLIC_URL,
     },
   },
 };
