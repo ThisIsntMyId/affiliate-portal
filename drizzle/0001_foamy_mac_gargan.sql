@@ -1,0 +1,1 @@
+ALTER TABLE "creatives" RENAME COLUMN "content" TO "path";

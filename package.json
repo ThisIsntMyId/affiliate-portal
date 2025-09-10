@@ -10,9 +10,9 @@
     "db:gen": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "migrate:local": "dotenv -e .env -- drizzle-kit migrate",
-    "migrate:dev": "dotenv -e .env.dev -- drizzle-kit migrate",
-    "migrate:prod": "dotenv -e .env.prod -- drizzle-kit migrate"
+    "db:migrate:local": "dotenv -e .env -- drizzle-kit migrate",
+    "db:migrate:dev": "dotenv -e .env.dev -- drizzle-kit migrate",
+    "db:migrate:prod": "dotenv -e .env.prod -- drizzle-kit migrate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

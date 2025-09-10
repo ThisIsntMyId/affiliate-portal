@@ -146,8 +146,8 @@ export const creatives = pgTable('creatives', {
     
     name: varchar('name', { length: 255 }).notNull(),
     type: varchar('type', { length: 50 }).notNull(),
+    path: varchar('path').notNull(),
     
-    content: text('content').notNull(),
     isActive: boolean('is_active').notNull().default(true),
     
     createdAt: timestamp('created_at').notNull().defaultNow(),
