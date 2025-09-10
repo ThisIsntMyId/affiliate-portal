@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { NavigationConfig, MenuItem } from '@/types/navigation';
 
 interface SidebarProps {
@@ -38,17 +39,29 @@ export function Sidebar({ navigationConfig, headerSlot, footerSlot }: SidebarPro
   };
 
   const NavigationItem = ({ item }: { item: MenuItem }) => {
-    const linkProps = item.openInNewTab ? {
-      href: item.url,
-      target: '_blank',
-      rel: 'noopener noreferrer'
-    } : {
-      href: item.url
-    };
+    if (item.openInNewTab) {
+      return (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`
+            flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+            ${item.isActive 
+              ? 'bg-blue-600 text-white' 
+              : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+            }
+          `}
+        >
+          {renderIcon(item.icon)}
+          <span className="ml-3">{item.title}</span>
+        </a>
+      );
+    }
 
     return (
-      <a
-        {...linkProps}
+      <Link
+        href={item.url}
         className={`
           flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
           ${item.isActive 
@@ -59,7 +72,7 @@ export function Sidebar({ navigationConfig, headerSlot, footerSlot }: SidebarPro
       >
         {renderIcon(item.icon)}
         <span className="ml-3">{item.title}</span>
-      </a>
+      </Link>
     );
   };
 
