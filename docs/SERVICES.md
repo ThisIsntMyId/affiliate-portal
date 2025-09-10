@@ -221,7 +221,7 @@ class ComplexService {
 
 ### Service Configuration
 
-Services use the centralized config system:
+Services use the centralized config system with driver-specific configurations:
 
 ```typescript
 // config/index.ts
@@ -241,11 +241,40 @@ export const config = {
 }
 ```
 
+**Configuration Pattern**: Each service driver has its own configuration object under the service name. This allows for:
+- **Multiple drivers per service** (smtp, log for email)
+- **Driver-specific settings** without conflicts
+- **Easy addition of new drivers** without breaking existing ones
+- **Type safety** for each driver's configuration
+
+### Dynamic Driver Config Resolution
+
+Services use a dynamic approach to resolve driver-specific configuration:
+
+```typescript
+// Clean config handling - automatically selects the right config
+const emailDriver = config.mail.driver
+const emailDriverConfig = config.mail[emailDriver as keyof Omit<typeof config.mail, 'driver'>] as SMTPConfig | undefined
+
+export const emailService = createEmailService(emailDriver, emailDriverConfig)
+```
+
+**How it works:**
+- **SMTP driver**: Gets `config.mail.smtp` object with full configuration
+- **Log driver**: Gets `undefined` (no config needed)
+- **Future drivers**: Automatically work when added to config
+
+**Benefits:**
+- ✅ **No conditional logic** for each driver
+- ✅ **Scalable** - new drivers work automatically
+- ✅ **Type safe** - TypeScript ensures proper config access
+- ✅ **Service responsibility** - each driver handles its own config validation
+
 ### Environment Variables
 
 ```bash
 # Email
-MAIL_DRIVER=smtp
+MAIL_DRIVER=smtp # smtp, log
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USER=your-email@gmail.com
@@ -314,21 +343,31 @@ class DriverService implements ServiceInterface {
 ### 3. Service Factory Pattern
 
 ```typescript
-// Service factory
+// Service factory with dynamic config resolution
 const serviceDrivers = {
-  'driver1': (config: any) => new Driver1Service(config),
-  'driver2': (config: any) => new Driver2Service(config),
-  'log': () => new LogService()
+  'smtp': (config: SMTPConfig) => new SMTPEmailService(config),
+  'log': () => new LogEmailService()
 } as const
 
-export function createService(driver: string, config?: any): ServiceInterface {
+export function createEmailService(driver: string, driverConfig?: SMTPConfig): EmailService {
   const factory = serviceDrivers[driver as keyof typeof serviceDrivers]
   if (!factory) {
-    throw new Error(`Unknown service driver: ${driver}`)
+    throw new Error(`Unknown email driver: ${driver}`)
   }
-  return factory(config)
+  return factory(driverConfig as SMTPConfig)
 }
+
+// Dynamic config resolution - the key improvement!
+const emailDriver = config.mail.driver
+const emailDriverConfig = config.mail[emailDriver as keyof Omit<typeof config.mail, 'driver'>] as SMTPConfig | undefined
+export const emailService = createEmailService(emailDriver, emailDriverConfig)
 ```
+
+**Key Improvements:**
+- **Dynamic config access** - no hardcoded driver checks
+- **Type safety** - proper TypeScript types for each driver
+- **Scalable** - new drivers automatically work
+- **Clean separation** - config resolution separate from service creation
 
 ## Service Registry
 

@@ -68,8 +68,8 @@ export const config = {
     cookieDuration: env.SESSION_COOKIE_DURATION,
   },
   
-  // Email
-  email: {
+  // Mail
+  mail: {
     driver: env.MAIL_DRIVER,
     smtp: {
       host: env.MAIL_HOST,
