@@ -1,7 +1,6 @@
 import { BaseLayout } from '@/components/BaseLayout';
 import { adminNavigationConfig } from './nav';
-import { UserProfile } from './_components/UserProfile';
-import { LogoutButton } from './_components/LogoutButton';
+import { BrandLogo, LogoutButton } from './_components';
 
 export default function AdminLayout({
   children,
@@ -13,7 +12,11 @@ export default function AdminLayout({
       navigationConfig={adminNavigationConfig}
       logo="Admin"
       backgroundColor="gray-50"
-      sidebarHeaderSlot={<UserProfile userType="admin" />}
+      sidebarHeaderSlot={
+        <div>
+          <BrandLogo />
+        </div>
+      }
       sidebarFooterSlot={<LogoutButton />}
     >
       {children}
