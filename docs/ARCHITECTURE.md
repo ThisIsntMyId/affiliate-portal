@@ -123,6 +123,7 @@ src/
 │   │   ├── login.ts
 │   │   ├── register.ts
 │   │   ├── logout.ts
+│   │   ├── start-impersonation.ts
 │   │   └── stop-impersonation.ts
 │   ├── admin/
 │   │   └── brands.ts
@@ -156,7 +157,7 @@ src/
 │       └── utils.ts
 │
 ├── lib/                    # Core utilities
-│   ├── auth.ts             # Authentication utilities
+│   ├── cache.ts            # Caching utilities for auth data
 │   ├── api-auth.ts         # API key validation
 │   └── utils.ts
 │
@@ -500,8 +501,10 @@ import { Suspense } from 'react';
 export default async function BrandsPage() {
   // ARCHITECTURE DECISION: Pages can load user context and permissions
   // This enables role-based rendering and access control
-  const currentUser = await getCurrentUser();
-  const userPermissions = await UserModel.getPermissions(currentUser.id);
+  const token = await getCurrentUser();
+  if (!token) redirect('/login');
+  
+  const userPermissions = await UserModel.getPermissions(token.user.id);
   
   // ARCHITECTURE DECISION: Pages can load multiple models in parallel
   // This optimizes performance by avoiding sequential database calls
@@ -565,12 +568,13 @@ export default async function BrandsPage() {
 - External API integrations
 - Cross-cutting concerns (logging, caching, notifications)
 - Reusable business logic across the application
+- **Comprehensive caching** for user and brand data
 
 **Services Include**:
 - **Email Service**: SendGrid, SMTP integration
 - **SMS Service**: Twilio, SMS providers
 - **Storage Service**: File uploads, cloud storage
-- **Cache Service**: Redis, in-memory caching
+- **Cache Service**: Redis, in-memory caching with TTL and invalidation
 - **Logging Service**: Structured logging, error tracking
 - **Rate Limiting Service**: Request rate limiting
 - **Crypto Service**: Encryption, hashing
@@ -656,6 +660,28 @@ export const CacheService = {
 
   async exists(key: string): Promise<boolean> {
     return (await redis.exists(key)) === 1;
+  },
+
+  // ARCHITECTURE DECISION: Comprehensive caching with TTL and invalidation
+  // This provides fast data access while ensuring data consistency
+  async getOrSet<T>(
+    key: string, 
+    fetcher: () => Promise<T>, 
+    ttl: number = 3600
+  ): Promise<T> {
+    const cached = await this.get(key);
+    if (cached) return JSON.parse(cached);
+    
+    const data = await fetcher();
+    await this.set(key, data, ttl);
+    return data;
+  },
+
+  async invalidate(pattern: string): Promise<void> {
+    const keys = await redis.keys(pattern);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
   }
 };
 
@@ -786,18 +812,136 @@ const affiliateCode = CodeGenerationService.generateAffiliateCode(affiliate.id, 
 
 ## Authentication Strategy
 
-### JWT + Cookie Approach
-- **JWT in response**: For API calls and client-side usage
-- **Secure httpOnly cookie**: For automatic authentication
-- **Flexibility**: Frontend can use JWT, cookie ensures automatic auth
+### JWT-Only Approach
+- **JWT in httpOnly cookie**: For automatic authentication
+- **Server-side resolution**: All auth data comes from JWT token
+- **No hostname parsing**: Brand context included in JWT payload
+- **Comprehensive caching**: Full user/brand data cached with TTL
+- **Simple and secure**: No client-side token handling
 
 ### Auth Module Structure
 ```
 src/auth/
-├── jwt.ts          # Generate/decode JWT tokens
-├── user.ts         # Get current user from request
-└── middleware.ts   # Auth middleware for protected routes
+├── user.ts         # User context helpers (getCurrentUser, getFullUser, getCachedUser)
+├── brand.ts        # Brand context helpers (getCurrentBrand, getFullBrand, getCachedBrand)
+└── lib/
+    └── cache.ts    # Caching utilities for auth data
 ```
+
+## Comprehensive Caching Strategy
+
+### Caching Architecture
+
+The application uses a **multi-level caching strategy** to optimize performance and reduce database overhead:
+
+**Cache Levels:**
+1. **JWT Token Data**: Essential user/brand info in token payload (always available)
+2. **Cached User Data**: Full user details with TTL (1 hour default)
+3. **Cached Brand Data**: Full brand details with TTL (1 hour default)
+4. **Cache Invalidation**: Automatic clearing on data changes
+
+**Helper Functions:**
+- `getCurrentUser()`: Decode JWT token and return as-is
+- `getFullUser()`: Get user from database using token.user.id
+- `getCachedUser()`: Use cache with getFullUser() as fallback
+- `getCurrentBrand()`: Return token.brand directly from JWT
+- `getFullBrand()`: Get brand from database using token.brand.id
+- `getCachedBrand()`: Use cache with getFullBrand() as fallback
+
+### Cache Implementation
+
+```typescript
+// Cache configuration
+const CACHE_TTL = 3600 // 1 hour
+const CACHE_PREFIX = {
+  USER: 'user:',
+  BRAND: 'brand:',
+  USER_BRAND: 'user:brand:'
+}
+
+// Usage in auth modules
+export async function getCachedUser(): Promise<User | null> {
+  const token = await getCurrentUser()
+  if (!token) return null
+  
+  return CacheService.getOrSet(
+    `user:${token.user.id}`,
+    () => getFullUser(),
+    CACHE_TTL
+  )
+}
+
+export async function getCachedBrand(): Promise<Brand | null> {
+  const token = await getCurrentUser()
+  if (!token?.brand) return null
+  
+  return CacheService.getOrSet(
+    `brand:${token.brand.id}`,
+    () => getFullBrand(),
+    CACHE_TTL
+  )
+}
+```
+
+### Cache Invalidation Strategy
+
+**Automatic Invalidation:**
+- **User data changes** → Clear user cache
+- **Brand data changes** → Clear brand cache + all user caches for that brand
+- **Brand status changes** → Clear all related caches
+
+```typescript
+// When user data changes
+export async function updateUser(userId: number, data: UpdateUserData) {
+  const user = await UserModel.update(userId, data)
+  
+  // Invalidate user cache
+  await CacheService.invalidate(`user:${userId}`)
+  
+  return user
+}
+
+// When brand data changes
+export async function updateBrand(brandId: number, data: UpdateBrandData) {
+  const brand = await BrandModel.update(brandId, data)
+  
+  // Invalidate brand cache
+  await CacheService.invalidate(`brand:${brandId}`)
+  
+  // Invalidate all user caches for this brand
+  await CacheService.invalidate(`user:*:brand:${brandId}`)
+  
+  return brand
+}
+```
+
+### Brand Status Handling
+
+**Status Levels:**
+- **`active`** - Normal operation
+- **`inactive`** - Show warning, limited access, no new registrations
+- **`suspended`** - Immediate redirect to login
+
+**Implementation:**
+```typescript
+// In layout or middleware
+const brand = await getCachedBrand()
+if (brand?.status === 'suspended') {
+  return redirect('/login?message=brand-suspended')
+} else if (brand?.status === 'inactive') {
+  return <InactiveBrandWarning />
+}
+```
+
+### Performance Benefits
+
+**Why this caching approach:**
+- ✅ **Fast API responses** via cached data
+- ✅ **Minimal database overhead** for repeated requests
+- ✅ **No complex token invalidation** needed (cache handles it)
+- ✅ **Automatic data consistency** via cache invalidation
+- ✅ **Scalable** - works with any number of application instances
+- ✅ **Simple implementation** - no complex refresh logic needed
 
 ## Error Handling
 

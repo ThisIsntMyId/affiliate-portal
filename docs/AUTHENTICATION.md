@@ -4,14 +4,14 @@ This document outlines the authentication system implementation for the Affiliat
 
 ## Overview
 
-The authentication system uses **JWT-based authentication** with **server actions** for user interactions and **API key authentication** for external access. The system supports **impersonation** functionality for admin and brand users.
+The authentication system uses **JWT-based authentication** with **comprehensive caching** for optimal performance. The system supports **brand context** for affiliates, **impersonation** functionality for admin and brand users, and **API key authentication** for external access.
 
 ## Core Principles
 
 ### 1. Simple and Secure
-- **JWT tokens** with configurable expiration (14 days default)
+- **JWT tokens** with configurable expiration (2-3 days default)
 - **Single cookie** approach for authentication
-- **Server-side user resolution** with automatic caching
+- **Server-side user resolution** with intelligent caching
 - **No auto-refresh** - users manually log in when expired
 
 ### 2. Progressive Enhancement
@@ -20,29 +20,45 @@ The authentication system uses **JWT-based authentication** with **server action
 - **Form-based authentication** with proper HTTP semantics
 
 ### 3. Multi-tenant Support
-- **Brand context** resolution via middleware
+- **Brand context** resolution via JWT token (no hostname parsing needed)
 - **User type separation** (admin, brand, affiliate)
 - **Impersonation** support for admin and brand users
+- **Multi-brand users** via separate user records per brand
 
-## Authentication Strategy
+### 4. Performance-First
+- **Comprehensive caching** for user and brand data
+- **Cache invalidation** on data changes
+- **Fast API responses** via cached data
+- **Minimal database overhead** for repeated requests
 
-### JWT Token Structure
+## JWT Token Structure
+
+### Scoped Data Structure
 
 ```typescript
 interface JWTPayload {
-  userId: number
-  userType: 'admin' | 'brand' | 'affiliate'
-  email: string
-  name: string
-  brandId?: number // for affiliates
+  user: {
+    id: number
+    type: 'admin' | 'brand' | 'affiliate'
+    email: string
+    name: string
+    avatar?: string
+  }
   
-  // Impersonation data (when impersonating)
-  impersonatingAs?: {
+  brand?: {
+    id: number
+    code: string
+    name: string
+    website?: string
+    logo?: string
+  }
+  
+  impersonateBy?: {
     userId: number
     userType: 'admin' | 'brand' | 'affiliate'
     email: string
     name: string
-    brandId?: number
+    avatar?: string
   }
   
   iat: number
@@ -50,20 +66,41 @@ interface JWTPayload {
 }
 ```
 
+### User Avatar Generation
+
+The `user.avatar` field will initially use **UI Avatars** service to generate avatar URLs based on the username:
+
+```typescript
+// Avatar generation utility
+export function generateUserAvatar(username: string): string {
+  // UI Avatars service - generates avatar from username
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random&color=fff&size=128`
+}
+
+// Usage in user creation/update
+const userAvatar = generateUserAvatar(user.name)
+```
+
+**Future Enhancement:**
+- Later, users will be able to upload custom avatars
+- The system will fallback to UI Avatars if no custom avatar is set
+- Custom avatars will be stored in cloud storage (AWS S3, Cloudinary, etc.)
+
 ### Cookie Configuration
 
 ```bash
 # .env.local
 AUTH_COOKIE_NAME=affiliate_auth_token
-SESSION_DURATION=14d
+SESSION_DURATION=2d
 JWT_SECRET=your_jwt_secret_here
+CACHE_TTL=3600
 ```
 
 **Cookie Settings:**
 - **HttpOnly**: Prevents client-side access
 - **Secure**: HTTPS only in production
 - **SameSite**: Lax for CSRF protection
-- **MaxAge**: 30 days (configurable)
+- **MaxAge**: 2-3 days (configurable)
 
 ## User Types and Registration
 
@@ -72,7 +109,7 @@ JWT_SECRET=your_jwt_secret_here
 1. **Admins**
    - **Registration**: Manual creation only (no public registration)
    - **Access**: Full system access, brand management
-   - **Impersonation**: Can impersonate brands
+   - **Impersonation**: Can impersonate brands and affiliates
 
 2. **Brands**
    - **Registration**: Can register publicly
@@ -83,6 +120,7 @@ JWT_SECRET=your_jwt_secret_here
    - **Registration**: Can register publicly (with brand context)
    - **Access**: Generate links, view reports, manage payouts
    - **Impersonation**: Cannot impersonate others
+   - **Multi-brand**: Separate user record per brand (mark@mail.com + brand_id = unique)
 
 4. **Referrers**
    - **Registration**: No registration (created via API/link)
@@ -116,7 +154,7 @@ export async function register(formData: FormData) {
   })
   
   // Create token and set cookie
-  const token = createAuthToken(user)
+  const token = createAuthToken(user, brand)
   setAuthCookie(token)
   
   // Redirect to appropriate dashboard
@@ -124,139 +162,204 @@ export async function register(formData: FormData) {
 }
 ```
 
-## Brand Context Resolution
+## Implementation
 
-### URL Strategy
+### Core Helper Functions
 
-Affiliate routes use **subdomains** with **middleware rewriting**:
-
-1. **User visits**: `acme.mysystem.com/affiliate/login`
-2. **Middleware rewrites**: `acme.mysystem.com/affiliate/login` → `app.mysystem.com/affiliate/login?brand=acme`
-3. **Clean URLs**: Users see clean subdomain URLs
-4. **Brand context**: Available in all affiliate pages via query parameter `brand`
-
-### Middleware Implementation
+#### User Context Helpers
 
 ```typescript
-// middleware.ts
-export function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone()
-  const hostname = request.headers.get('host') || ''
+// auth/user.ts
+import { cookies } from 'next/headers'
+import jwt from 'jsonwebtoken'
+import { CacheService } from '@/lib/cache'
+
+// Get current user from JWT (decode token and return as-is)
+export async function getCurrentUser(): Promise<JWTPayload | null> {
+  const cookieStore = cookies()
+  const token = cookieStore.get('affiliate_auth_token')?.value
   
-  // Extract subdomain
-  const subdomain = hostname.split('.')[0]
+  if (!token) return null
   
-  // Skip if it's the main domain or www
-  if (subdomain === 'app' || subdomain === 'www' || subdomain === 'localhost') {
-    return NextResponse.next()
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload
+  } catch {
+    return null // Token expired or invalid
   }
+}
+
+// Get full user data from database
+export async function getFullUser(): Promise<User | null> {
+  const token = await getCurrentUser()
+  if (!token) return null
   
-  // If it's a brand subdomain and affiliate route
-  if (url.pathname.startsWith('/affiliate/')) {
-    // Rewrite to main domain with brand context
-    url.hostname = 'app.mysystem.com' // or your main domain
-    url.searchParams.set('brand', subdomain)
-    
-    return NextResponse.rewrite(url)
-  }
+  return UserModel.findById(token.user.id)
+}
+
+// Get cached user data (with database fallback)
+export async function getCachedUser(): Promise<User | null> {
+  const token = await getCurrentUser()
+  if (!token) return null
   
-  return NextResponse.next()
+  return CacheService.getOrSet(
+    `user:${token.user.id}`,
+    () => getFullUser(),
+    CACHE_TTL
+  )
 }
 ```
 
-### Brand Context Helper
+#### Brand Context Helpers
 
 ```typescript
 // auth/brand.ts
-import { headers } from 'next/headers'
-import { getBrandByCode } from '@/models/brand.model'
+import { getCurrentUser } from './user'
+import { CacheService } from '@/lib/cache'
 
-export async function getCurrentBrand(): Promise<{ brand: Brand | null, brandCode: string | null }> {
-  try {
-    const headersList = await headers()
-    const hostname = headersList.get('host') || ''
-    
-    // Extract subdomain
-    const subdomain = hostname.split('.')[0]
-    
-    // Skip if it's the main domain
-    if (subdomain === 'app' || subdomain === 'www' || subdomain === 'localhost') {
-      return { brand: null, brandCode: null }
-    }
-    
-    // Get brand by subdomain
-    const brand = await getBrandByCode(subdomain)
-    
-    return { brand, brandCode: subdomain }
-  } catch (error) {
-    console.error('Error getting current brand:', error)
-    return { brand: null, brandCode: null }
-  }
+// Get current brand from JWT (decode token and return brand data)
+export async function getCurrentBrand(): Promise<Brand | null> {
+  const token = await getCurrentUser()
+  if (!token?.brand) return null
+  
+  return token.brand
 }
-```
 
-### Brand Context Access
+// Get full brand data from database
+export async function getFullBrand(): Promise<Brand | null> {
+  const token = await getCurrentUser()
+  if (!token?.brand) return null
+  
+  return BrandModel.findById(token.brand.id)
+}
 
-```typescript
-// app/(affiliate)/(dashboard)/layout.tsx
-import { getCurrentBrand } from '@/auth/brand'
-
-export default async function AffiliateLayout({ 
-  children 
-}: { 
-  children: React.ReactNode
-}) {
-  const user = await getCurrentUser()
-  const { brand, brandCode } = await getCurrentBrand()
+// Get cached brand data (with database fallback)
+export async function getCachedBrand(): Promise<Brand | null> {
+  const token = await getCurrentUser()
+  if (!token?.brand) return null
   
-  if (!brandCode || !brand) {
-    redirect('/affiliate/login')
-  }
-  
-  if (!user || user.type !== 'affiliate') {
-    redirect('/affiliate/login')
-  }
-  
-  return (
-    <div>
-      <BrandHeader brand={brand} />
-      <AffiliateSidebar user={user} brand={brand} />
-      <main>{children}</main>
-    </div>
+  return CacheService.getOrSet(
+    `brand:${token.brand.id}`,
+    () => getFullBrand(),
+    CACHE_TTL
   )
 }
 ```
+
+### Why JWT-Only Approach?
+
+**Benefits:**
+- ✅ **No hostname parsing** - brand context comes from JWT
+- ✅ **Simpler middleware** - no complex URL rewriting
+- ✅ **Better performance** - no database queries for basic auth
+- ✅ **Cleaner code** - all context in one place
+- ✅ **Easier debugging** - all auth state in JWT
+
+**How it works:**
+1. User logs in with brand context (for affiliates)
+2. Brand data is included in JWT token
+3. All subsequent requests use JWT data
+4. No need to parse hostnames or query database for basic auth
 
 ### Usage Examples
 
+#### Server Components
+
 ```typescript
-// Server component - Get brand context
-export default async function AffiliateDashboard() {
-  const { brand, brandCode } = await getCurrentBrand()
+// app/(dashboard)/layout.tsx
+import { getCurrentUser, getCurrentBrand } from '@/auth'
+
+export default async function DashboardLayout({ 
+  children 
+}: { 
+  children: React.ReactNode 
+}) {
+  const token = await getCurrentUser()
+  const brand = await getCurrentBrand()
   
-  if (!brand) {
-    return <div>Invalid brand</div>
+  if (!token) {
+    redirect('/login')
   }
   
   return (
-    <div>
-      <h1>Welcome to {brand.name}</h1>
-      <p>Brand Code: {brandCode}</p>
-    </div>
+    <AuthProvider user={token.user} brand={brand} impersonateBy={token.impersonateBy}>
+      {children}
+    </AuthProvider>
   )
 }
 
-// Server action - Use brand context
-export async function createAffiliateLink(formData: FormData) {
-  const { brand } = await getCurrentBrand()
+// app/(dashboard)/page.tsx
+export default async function DashboardPage() {
+  const token = await getCurrentUser() // Cached by Next.js
+  const brand = await getCurrentBrand()
   
-  if (!brand) {
-    throw new Error('Brand context required')
+  return (
+    <div>
+      <h1>Welcome {token.user.name}!</h1>
+      {brand && <p>Brand: {brand.name}</p>}
+      {token.impersonateBy && (
+        <p>Impersonated by: {token.impersonateBy.name}</p>
+      )}
+    </div>
+  )
+}
+```
+
+#### Client Components
+
+```typescript
+// components/UserProfile.tsx
+'use client'
+import { useAuth } from '@/contexts/AuthContext'
+
+export function UserProfile() {
+  const { user, brand, impersonateBy } = useAuth()
+  
+  if (!user) {
+    return <div>Not authenticated</div>
+  }
+  
+  return (
+    <div className="flex items-center space-x-4">
+      {user.avatar && (
+        <img 
+          src={user.avatar} 
+          alt={`${user.name} avatar`}
+          className="w-12 h-12 rounded-full"
+        />
+      )}
+      <div>
+        <h2>Welcome, {user.name}!</h2>
+        <p>Email: {user.email}</p>
+        <p>Type: {user.type}</p>
+        {brand && <p>Brand: {brand.name}</p>}
+        {impersonateBy && (
+          <p className="text-yellow-600">Impersonated by: {impersonateBy.name}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+#### Server Actions
+
+```typescript
+// actions/auth.ts
+'use server'
+import { getCurrentUser, getCurrentBrand } from '@/auth'
+
+export async function createAffiliateLink(formData: FormData) {
+  const token = await getCurrentUser()
+  const brand = await getCurrentBrand()
+  
+  if (!token || !brand) {
+    throw new Error('Authentication required')
   }
   
   // Create link for this specific brand
   const link = await createLink({
     brandId: brand.id,
+    userId: token.user.id,
     // ... other data
   })
   
@@ -264,486 +367,13 @@ export async function createAffiliateLink(formData: FormData) {
 }
 ```
 
-### Alternative: Brand Context Hook (Client-side)
-
-```typescript
-// hooks/useBrandContext.ts
-'use client'
-import { useEffect, useState } from 'react'
-
-export function useBrandContext() {
-  const [brand, setBrand] = useState(null)
-  const [brandCode, setBrandCode] = useState(null)
-  const [loading, setLoading] = useState(true)
-  
-  useEffect(() => {
-    const getBrand = async () => {
-      try {
-        const response = await fetch('/api/brand/current')
-        if (response.ok) {
-          const data = await response.json()
-          setBrand(data.brand)
-          setBrandCode(data.brandCode)
-        }
-      } catch (error) {
-        console.error('Failed to get brand context:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    getBrand()
-  }, [])
-  
-  return {
-    brand,
-    brandCode,
-    loading,
-    isBrandSpecific: !!brandCode
-  }
-}
-```
-
-## User Context Management
-
-### Server-Side State (Recommended)
-
-**Why server-side state:**
-- ✅ **Automatic caching** by Next.js within same request
-- ✅ **No client-side complexity** for auth state
-- ✅ **Always up-to-date** user data
-- ✅ **Better security** - no client-side user data
-- ✅ **Minimal bundle size**
-
-### Implementation Pattern
-
-```typescript
-// auth/user.ts
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
-
-export async function getCurrentUser(): Promise<User | null> {
-  const cookieStore = cookies()
-  const token = cookieStore.get('affiliate_auth_token')?.value
-  
-  if (!token) return null
-  
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload
-    
-    if (payload.impersonatingAs) {
-      // Return impersonated user
-      return {
-        id: payload.impersonatingAs.userId,
-        type: payload.impersonatingAs.userType,
-        email: payload.impersonatingAs.email,
-        name: payload.impersonatingAs.name,
-        brandId: payload.impersonatingAs.brandId,
-        isImpersonating: true,
-        originalUser: {
-          id: payload.userId,
-          type: payload.userType,
-          email: payload.email,
-          name: payload.name
-        }
-      }
-    }
-    
-    // Return original user
-    return {
-      id: payload.userId,
-      type: payload.userType,
-      email: payload.email,
-      name: payload.name,
-      brandId: payload.brandId,
-      isImpersonating: false
-    }
-  } catch {
-    return null // Token expired or invalid
-  }
-}
-```
-
-### Layout-Level Authentication
-
-```typescript
-// app/(dashboard)/layout.tsx
-import { getCurrentUser } from '@/auth/user'
-
-export default async function DashboardLayout({ 
-  children 
-}: { 
-  children: React.ReactNode 
-}) {
-  const user = await getCurrentUser()
-  
-  if (!user) {
-    redirect('/login')
-  }
-  
-  // Custom redirects based on user state
-  if (user.emailVerified === false) {
-    redirect('/verify-email')
-  }
-  
-  if (user.subscriptionStatus === 'expired') {
-    redirect('/billing')
-  }
-  
-  return (
-    <AuthProvider user={user}>
-      {children}
-    </AuthProvider>
-  )
-}
-```
-
-### Page Access
-
-```typescript
-// Server-side: Use helper function
-export default async function DashboardPage() {
-  const user = await getCurrentUser() // Cached by Next.js
-  return <div>Welcome {user.name}!</div>
-}
-
-// Client-side: Use hook (when needed)
-'use client'
-export default function ClientComponent() {
-  const { user } = useAuth()
-  return <div>Welcome {user.name}!</div>
-}
-```
-
-## Client-Side Auth Hook
-
-### Auth Context Provider
-
-```typescript
-// contexts/AuthContext.tsx
-'use client'
-import { createContext, useContext, useState } from 'react'
-
-interface User {
-  id: number
-  type: 'admin' | 'brand' | 'affiliate'
-  email: string
-  name: string
-  brandId?: number
-  isImpersonating?: boolean
-  originalUser?: {
-    id: number
-    type: string
-    email: string
-    name: string
-  }
-}
-
-interface AuthContextType {
-  user: User | null
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ 
-  children, 
-  initialUser 
-}: { 
-  children: React.ReactNode
-  initialUser: User | null 
-}) {
-  const [user] = useState<User | null>(initialUser)
-
-  return (
-    <AuthContext.Provider value={{ user }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
-```
-
-### Layout Integration
-
-```typescript
-// app/(dashboard)/layout.tsx
-import { getCurrentUser } from '@/auth/user'
-import { AuthProvider } from '@/contexts/AuthContext'
-
-export default async function DashboardLayout({ 
-  children 
-}: { 
-  children: React.ReactNode 
-}) {
-  const user = await getCurrentUser()
-  
-  if (!user) {
-    redirect('/login')
-  }
-  
-  return (
-    <AuthProvider initialUser={user}>
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
-    </AuthProvider>
-  )
-}
-```
-
-### Client-Side Usage Examples
-
-```typescript
-// Client component with auth
-'use client'
-import { useAuth } from '@/contexts/AuthContext'
-
-export default function UserProfile() {
-  const { user } = useAuth()
-  
-  if (!user) {
-    return <div>Not authenticated</div>
-  }
-  
-  const isImpersonating = user.isImpersonating || false
-  
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2>Welcome, {user.name}!</h2>
-        <p>Email: {user.email}</p>
-        <p>Type: {user.type}</p>
-        {user.brandId && <p>Brand ID: {user.brandId}</p>}
-      </div>
-      
-      {isImpersonating && user.originalUser && (
-        <div className="bg-yellow-100 p-4 rounded">
-          <p>Impersonating as {user.originalUser.name}</p>
-          <p className="text-sm text-gray-600">
-            Original user: {user.originalUser?.name} ({user.originalUser?.type})
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-```
-
-### Login Form with Server Actions
-
-```typescript
-// Client component with login form using server actions
-'use client'
-import { login } from '@/actions/auth'
-import { useState } from 'react'
-
-export default function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    userType: 'brand',
-    brandCode: ''
-  })
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    
-    try {
-      const formDataObj = new FormData()
-      formDataObj.append('email', formData.email)
-      formDataObj.append('password', formData.password)
-      formDataObj.append('userType', formData.userType)
-      if (formData.brandCode) formDataObj.append('brandCode', formData.brandCode)
-      
-      await login(formDataObj)
-      // Server action will redirect on success
-    } catch (error) {
-      console.error('Login failed:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label>Email</label>
-        <input
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
-          required
-        />
-      </div>
-      
-      <div>
-        <label>Password</label>
-        <input
-          type="password"
-          value={formData.password}
-          onChange={(e) => setFormData({...formData, password: e.target.value})}
-          required
-        />
-      </div>
-      
-      <div>
-        <label>User Type</label>
-        <select
-          value={formData.userType}
-          onChange={(e) => setFormData({...formData, userType: e.target.value})}
-        >
-          <option value="admin">Admin</option>
-          <option value="brand">Brand</option>
-          <option value="affiliate">Affiliate</option>
-        </select>
-      </div>
-      
-      {formData.userType === 'affiliate' && (
-        <div>
-          <label>Brand Code</label>
-          <input
-            type="text"
-            value={formData.brandCode}
-            onChange={(e) => setFormData({...formData, brandCode: e.target.value})}
-            placeholder="Enter brand code"
-          />
-        </div>
-      )}
-      
-      <button 
-        type="submit" 
-        disabled={isLoading}
-        className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-      >
-        {isLoading ? 'Logging in...' : 'Login'}
-      </button>
-    </form>
-  )
-}
-```
-
-### Impersonation Banner Component
-
-```typescript
-// components/ImpersonationBanner.tsx
-'use client'
-import { useAuth } from '@/contexts/AuthContext'
-import { stopImpersonation } from '@/actions/auth'
-
-export function ImpersonationBanner() {
-  const { user } = useAuth()
-  
-  if (!user || !user.isImpersonating) return null
-  
-  return (
-    <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm">
-            Impersonating as <strong>{user.name}</strong> ({user.type})
-          </p>
-          {user.originalUser && (
-            <p className="text-xs text-gray-600">
-              Original user: {user.originalUser.name} ({user.originalUser.type})
-            </p>
-          )}
-        </div>
-        <form action={stopImpersonation}>
-          <button
-            type="submit"
-            className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
-          >
-            Stop Impersonating
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-}
-```
-
-### Auth Guard Component
-
-```typescript
-// components/AuthGuard.tsx
-'use client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-
-interface AuthGuardProps {
-  children: React.ReactNode
-  requiredUserType?: 'admin' | 'brand' | 'affiliate'
-  fallback?: React.ReactNode
-}
-
-export function AuthGuard({ 
-  children, 
-  requiredUserType, 
-  fallback = <div>Access denied</div> 
-}: AuthGuardProps) {
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-  
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/login')
-    }
-  }, [user, isLoading, router])
-  
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-  
-  if (!user) {
-    return fallback
-  }
-  
-  if (requiredUserType && user.type !== requiredUserType) {
-    return fallback
-  }
-  
-  return <>{children}</>
-}
-
-// Usage
-export default function AdminOnlyPage() {
-  return (
-    <AuthGuard requiredUserType="admin">
-      <div>Admin content here</div>
-    </AuthGuard>
-  )
-}
-```
-
-
 ## Impersonation System
-
-### JWT Payload Extension Approach
-
-**Why JWT payload extension:**
-- ✅ **Single cookie** - simpler management
-- ✅ **No cookie conflicts** - one source of truth
-- ✅ **Easier debugging** - all auth state in one place
-- ✅ **Better security** - fewer cookies to manage
 
 ### Impersonation Flow
 
 ```typescript
 // Start impersonation
-export async function startImpersonation(targetUserId: number, targetUserType: string) {
+export async function startImpersonation(targetUserId: number) {
   const currentUser = await getCurrentUser()
   
   if (!currentUser) {
@@ -761,22 +391,30 @@ export async function startImpersonation(targetUserId: number, targetUserType: s
   
   // Get target user
   const targetUser = await getUserById(targetUserId)
+  const targetBrand = targetUser.brandId ? await getBrandById(targetUser.brandId) : null
   
   // Create new token with impersonation data
   const newToken = jwt.sign({
-    userId: currentUser.id,
-    userType: currentUser.type,
-    email: currentUser.email,
-    name: currentUser.name,
-    brandId: currentUser.brandId,
-    
-    // Impersonation data
-    impersonatingAs: {
-      userId: targetUser.id,
-      userType: targetUser.type,
+    user: {
+      id: targetUser.id,
+      type: targetUser.type,
       email: targetUser.email,
       name: targetUser.name,
-      brandId: targetUser.brandId
+      avatar: targetUser.avatar
+    },
+    brand: targetBrand ? {
+      id: targetBrand.id,
+      code: targetBrand.code,
+      name: targetBrand.name,
+      website: targetBrand.website,
+      logo: targetBrand.logo
+    } : undefined,
+    impersonateBy: {
+      userId: currentUser.id,
+      userType: currentUser.type,
+      email: currentUser.email,
+      name: currentUser.name,
+      avatar: currentUser.avatar
     }
   }, process.env.JWT_SECRET!, {
     expiresIn: process.env.SESSION_DURATION || '14d'
@@ -810,18 +448,31 @@ export async function stopImpersonation() {
   
   const payload = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload
   
-  if (!payload.impersonatingAs) {
+  if (!payload.impersonateBy) {
     throw new Error('Not impersonating')
   }
   
+  // Get original user data
+  const originalUser = await getUserById(payload.impersonateBy.userId)
+  const originalBrand = originalUser.brandId ? await getBrandById(originalUser.brandId) : null
+  
   // Create new token without impersonation data
   const newToken = jwt.sign({
-    userId: payload.userId,
-    userType: payload.userType,
-    email: payload.email,
-    name: payload.name,
-    brandId: payload.brandId
-    // No impersonatingAs field = back to original user
+    user: {
+      id: originalUser.id,
+      type: originalUser.type,
+      email: originalUser.email,
+      name: originalUser.name,
+      avatar: originalUser.avatar
+    },
+    brand: originalBrand ? {
+      id: originalBrand.id,
+      code: originalBrand.code,
+      name: originalBrand.name,
+      website: originalBrand.website,
+      logo: originalBrand.logo
+    } : undefined
+    // No impersonateBy field = back to original user
   }, process.env.JWT_SECRET!, {
     expiresIn: process.env.SESSION_DURATION || '14d'
   })
@@ -835,18 +486,22 @@ export async function stopImpersonation() {
   })
   
   // Redirect to original user's dashboard
-  redirect(getDashboardUrl(payload.userType))
+  redirect(getDashboardUrl(originalUser.type))
 }
 ```
 
-### Impersonation UI
+### Impersonation Banner
 
 ```typescript
-// Impersonation banner component
+// components/ImpersonationBanner.tsx
+'use client'
+import { useAuth } from '@/contexts/AuthContext'
+import { stopImpersonation } from '@/actions/auth'
+
 export function ImpersonationBanner() {
-  const { user } = useAuth()
+  const { user, impersonateBy } = useAuth()
   
-  if (!user || !user.isImpersonating) return null
+  if (!user || !impersonateBy) return null
   
   return (
     <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4">
@@ -855,17 +510,125 @@ export function ImpersonationBanner() {
           <p className="text-sm">
             Impersonating as <strong>{user.name}</strong> ({user.type})
           </p>
+          <p className="text-xs text-gray-600">
+            Impersonated by: {impersonateBy.name} ({impersonateBy.userType})
+          </p>
         </div>
         <form action={stopImpersonation}>
           <button
             type="submit"
             className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
           >
-            Stop Impersonating
+            Return to Original Portal
           </button>
         </form>
       </div>
     </div>
+  )
+}
+```
+
+## Client-Side Auth Context
+
+### Auth Context Provider
+
+```typescript
+// contexts/AuthContext.tsx
+'use client'
+import { createContext, useContext } from 'react'
+
+interface User {
+  id: number
+  type: 'admin' | 'brand' | 'affiliate'
+  email: string
+  name: string
+  avatar?: string
+}
+
+interface Brand {
+  id: number
+  code: string
+  name: string
+  website?: string
+  logo?: string
+}
+
+interface ImpersonateBy {
+  userId: number
+  userType: 'admin' | 'brand' | 'affiliate'
+  email: string
+  name: string
+  avatar?: string
+}
+
+interface AuthContextType {
+  user: User | null
+  brand: Brand | null
+  impersonateBy: ImpersonateBy | null
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ 
+  children, 
+  user,
+  brand,
+  impersonateBy
+}: { 
+  children: React.ReactNode
+  user: User | null
+  brand: Brand | null
+  impersonateBy: ImpersonateBy | null
+}) {
+  return (
+    <AuthContext.Provider value={{ user, brand, impersonateBy }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
+```
+
+### Layout Integration
+
+```typescript
+// app/(dashboard)/layout.tsx
+import { getCurrentUser, getCurrentBrand } from '@/auth'
+import { AuthProvider } from '@/contexts/AuthContext'
+
+export default async function DashboardLayout({ 
+  children 
+}: { 
+  children: React.ReactNode 
+}) {
+  const token = await getCurrentUser()
+  const brand = await getCurrentBrand()
+  
+  if (!token) {
+    redirect('/login')
+  }
+  
+  return (
+    <AuthProvider 
+      user={token.user} 
+      brand={brand} 
+      impersonateBy={token.impersonateBy || null}
+    >
+      <ImpersonationBanner />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    </AuthProvider>
   )
 }
 ```
@@ -902,8 +665,11 @@ export async function login(formData: FormData) {
     throw new Error('Invalid credentials')
   }
   
+  // Get brand data if needed
+  const brand = user.brandId ? await getBrandById(user.brandId) : null
+  
   // Create token and set cookie
-  const token = createAuthToken(user)
+  const token = createAuthToken(user, brand)
   const cookieStore = cookies()
   cookieStore.set('affiliate_auth_token', token, {
     httpOnly: true,
@@ -913,13 +679,7 @@ export async function login(formData: FormData) {
   })
   
   // Redirect to appropriate dashboard
-  if (user.type === 'admin') {
-    redirect('/admin/dashboard')
-  } else if (user.type === 'brand') {
-    redirect('/brand/dashboard')
-  } else {
-    redirect('/affiliate/dashboard')
-  }
+  redirect(getDashboardUrl(user.type))
 }
 
 export async function logout() {
@@ -1004,10 +764,69 @@ export async function GET(request: Request) {
 }
 ```
 
+## Caching Strategy
+
+### Cache Implementation
+
+```typescript
+// lib/cache.ts
+const CACHE_TTL = 3600 // 1 hour
+const CACHE_PREFIX = {
+  USER: 'user:',
+  BRAND: 'brand:'
+}
+
+export const CacheService = {
+  async getOrSet<T>(
+    key: string, 
+    fetcher: () => Promise<T>, 
+    ttl: number = CACHE_TTL
+  ): Promise<T> {
+    const cached = await cache.get(key)
+    if (cached) return JSON.parse(cached)
+    
+    const data = await fetcher()
+    await cache.setex(key, ttl, JSON.stringify(data))
+    return data
+  },
+  
+  async invalidate(pattern: string): Promise<void> {
+    const keys = await cache.keys(pattern)
+    if (keys.length > 0) {
+      await cache.del(...keys)
+    }
+  }
+}
+```
+
+### Cache Invalidation
+
+```typescript
+// When user data changes
+export async function updateUser(userId: number, data: UpdateUserData) {
+  const user = await UserModel.update(userId, data)
+  
+  // Invalidate user cache
+  await CacheService.invalidate(`user:${userId}`)
+  
+  return user
+}
+
+// When brand data changes
+export async function updateBrand(brandId: number, data: UpdateBrandData) {
+  const brand = await BrandModel.update(brandId, data)
+  
+  // Invalidate brand cache
+  await CacheService.invalidate(`brand:${brandId}`)
+  
+  return brand
+}
+```
+
 ## Security Considerations
 
 ### Token Security
-- **JWT with short expiration** (14 days configurable)
+- **JWT with short expiration** (2-3 days configurable)
 - **Secure cookie settings** (HttpOnly, Secure, SameSite)
 - **No client-side token handling** for user authentication
 
@@ -1048,7 +867,7 @@ if (user.type !== 'admin') {
 }
 
 // Brand context missing
-if (userType === 'affiliate' && !brandCode) {
+if (userType === 'affiliate' && !brand) {
   throw new Error('Brand context required')
 }
 ```
@@ -1071,48 +890,15 @@ export async function login(formData: FormData) {
 }
 ```
 
-## Future Enhancements
-
-### Auto-Refresh (Optional)
-```typescript
-// Client-side auto-refresh (if needed)
-'use client'
-export function useAuth() {
-  useEffect(() => {
-    const checkToken = async () => {
-      const response = await fetch('/api/auth/me')
-      if (response.status === 401) {
-        window.location.href = '/login'
-      }
-    }
-    
-    const interval = setInterval(checkToken, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
-}
-```
-
-### Session Management (Optional)
-```typescript
-// Database sessions (if needed)
-export const sessions = pgTable('sessions', {
-  id: varchar('id', { length: 255 }).primaryKey(),
-  userId: integer('user_id').notNull(),
-  userType: varchar('user_type', { length: 20 }).notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-})
-```
-
 ## Conclusion
 
 This authentication system provides:
 
 ✅ **Simple implementation** - JWT cookies, no database sessions  
-✅ **Brand context** - Automatic via middleware rewrite  
+✅ **Brand context** - Automatic via JWT token  
 ✅ **Server-side auth** - Layout-level user resolution  
 ✅ **Progressive enhancement** - Server actions work without JS  
-✅ **Clean URLs** - After middleware rewrite  
+✅ **Clean URLs** - No hostname parsing needed  
 ✅ **Impersonation support** - JWT payload extension  
 ✅ **Secure** - No client-side token handling  
 ✅ **Maintainable** - Clear patterns and structure  
