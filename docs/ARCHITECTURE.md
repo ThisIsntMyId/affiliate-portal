@@ -32,6 +32,7 @@ Each interface (API Routes, Actions, Pages) is optimized for its specific purpos
 src/
 ├── app/                    # Next.js App Router
 │   ├── (admin)/            # Admin portal routes
+│   │   ├── routes.ts       # Admin panel route definitions
 │   │   ├── (auth)/
 │   │   │   ├── login/page.tsx
 │   │   │   ├── register/page.tsx
@@ -47,6 +48,7 @@ src/
 │   │       └── create/page.tsx
 │   │
 │   ├── (brand)/            # Brand portal routes
+│   │   ├── routes.ts       # Brand panel route definitions
 │   │   ├── (auth)/
 │   │   │   ├── login/page.tsx
 │   │   │   ├── register/page.tsx
@@ -80,6 +82,7 @@ src/
 │   │   └── general-settings/page.tsx
 │   │
 │   ├── (affiliate)/        # Affiliate portal routes (with brand context)
+│   │   ├── routes.ts       # Affiliate panel route definitions
 │   │   ├── (auth)/
 │   │   │   ├── login/page.tsx      # /affiliate/login?brand=acme
 │   │   │   ├── register/page.tsx   # /affiliate/register?brand=acme
@@ -910,6 +913,187 @@ interface ApiResponse<T = any> {
 - Advanced analytics
 - Multi-tenancy
 - API versioning
+
+## Routing Architecture
+
+### Centralized Route Management
+
+The application uses a centralized routing system inspired by Laravel's route management approach. This provides type safety, maintainability, and a single source of truth for all application routes.
+
+### Route Structure
+
+Each panel (admin, brands, affiliate, demo) has its own route configuration file placed at the root of each panel directory, above the `(auth)` and `(dashboard)` folders:
+
+```
+src/app/
+├── (admin)/
+│   ├── routes.ts          # Admin panel routes
+│   ├── (auth)/
+│   └── (dashboard)/
+├── (brands)/
+│   ├── routes.ts          # Brands panel routes
+│   ├── (auth)/
+│   └── (dashboard)/
+├── (affiliate)/
+│   ├── routes.ts          # Affiliate panel routes
+│   ├── (auth)/
+│   └── (dashboard)/
+└── (demo)/
+    ├── routes.ts          # Demo panel routes
+    ├── (auth)/
+    └── (dashboard)/
+```
+
+### Route Definition Format
+
+Routes can be defined in two formats:
+
+**Simple String Format** (most common):
+```typescript
+'demo.dashboard': '/demo/dashboard'
+'demo.login': '/demo/login'
+```
+
+**Object Format** (for routes with parameters):
+```typescript
+'demo.users.show': {
+  path: '/demo/users/[id]',
+  params: { id: 'string' },
+  query: ['page', 'limit'] // optional query params this route accepts
+}
+```
+
+### Shared Route Utilities
+
+All route logic is centralized in `src/lib/routes.ts`:
+
+```typescript
+// lib/routes.ts - Shared utilities and types
+export type RouteValue = string | number | boolean
+export type RouteParams = Record<string, RouteValue>
+export type RouteQuery = Record<string, RouteValue>
+
+export type SimpleRoute = string
+export type ComplexRoute = {
+  path: string
+  params?: RouteParams
+  query?: RouteQuery
+}
+
+export type RouteDefinition = SimpleRoute | ComplexRoute
+export type RouteConfig = Record<string, RouteDefinition>
+
+// Shared route building logic
+export function buildRoute(
+  routeDef: RouteDefinition,
+  params?: RouteParams,
+  query?: RouteQuery,
+  baseUrl: string = '/'
+): string
+```
+
+### Panel-Specific Route Files
+
+Each panel exports its own `getRoute` and `getFullRoute` functions:
+
+```typescript
+// app/(demo)/routes.ts
+import { buildRoute, buildFullRoute, type RouteConfig } from '@/lib/routes'
+
+const routes: RouteConfig = {
+  'demo.dashboard': '/demo/dashboard',
+  'demo.users.show': {
+    path: '/demo/users/[id]',
+    params: { id: 'string' },
+    query: { edit: 'boolean' }
+  }
+} as const
+
+export function getRoute(
+  routeName: keyof typeof routes,
+  params?: RouteParams,
+  query?: RouteQuery
+): string {
+  return buildRoute(routes[routeName], params, query)
+}
+
+export function getFullRoute(
+  routeName: keyof typeof routes,
+  params?: RouteParams,
+  query?: RouteQuery
+): string {
+  // Get base URL from environment or use localhost for development
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                  process.env.VERCEL_URL || 
+                  'http://localhost:3000'
+  
+  return buildRoute(routes[routeName], params, query, baseUrl)
+}
+```
+
+### Route Naming Convention
+
+Routes follow Laravel's dot notation pattern:
+
+```typescript
+// Demo routes
+'demo.dashboard'
+'demo.users.index'
+'demo.users.create'
+'demo.users.show'
+'demo.users.edit'
+'demo.users.store'
+'demo.users.update'
+'demo.users.destroy'
+
+// Admin routes
+'admin.dashboard'
+'admin.brands.index'
+'admin.brands.create'
+'admin.brands.show'
+'admin.brands.edit'
+```
+
+### Usage Examples
+
+```typescript
+// In demo panel
+import { getRoute, getFullRoute } from './routes'
+
+// Simple routes
+getRoute('demo.dashboard')  // '/demo/dashboard'
+
+// With params
+getRoute('demo.users.show', { id: '123' })  // '/demo/users/123'
+
+// With params + query
+getRoute('demo.users.show', { id: '123' }, { edit: true })  // '/demo/users/123?edit=true'
+
+// Full URL
+getFullRoute('demo.users.show', { id: '123' })  // 'https://app.com/demo/users/123' (uses env base URL)
+```
+
+### Benefits
+
+✅ **Type Safety**: TypeScript prevents invalid route usage and parameter mismatches
+✅ **Centralized Management**: Single source of truth for all routes
+✅ **Refactoring Safety**: Changing file structure doesn't break route references
+✅ **Developer Experience**: Clear overview of all available routes
+✅ **Consistency**: Uniform way to handle routing across the app
+✅ **Panel Separation**: Each panel manages its own routes, reducing coupling
+✅ **Laravel-inspired**: Familiar dot notation for route naming
+
+### Architecture Decision
+
+**Route Management**: The application uses a centralized routing system with panel-specific route files. This approach provides:
+
+- **Type safety** to prevent route and parameter mismatches
+- **Shared utilities** to avoid code duplication
+- **Panel separation** for better organization
+- **Laravel-inspired naming** for consistency
+- **Simple extensions** when complex route definitions are needed
+
+This routing architecture ensures that route changes can be made in one place without affecting the rest of the application, while providing full TypeScript support for route names, parameters, and query strings.
 
 ## Conclusion
 
