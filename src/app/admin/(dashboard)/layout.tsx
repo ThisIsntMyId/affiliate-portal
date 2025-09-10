@@ -1,6 +1,6 @@
 import { BaseLayout } from '@/components/BaseLayout';
 import { adminNavigationConfig } from './nav';
-import { BrandLogo, LogoutButton } from './_components';
+import { BrandLogo, UserProfile, LogoutButton } from './_components';
 
 export default function AdminLayout({
   children,
@@ -17,7 +17,12 @@ export default function AdminLayout({
           <BrandLogo />
         </div>
       }
-      sidebarFooterSlot={<LogoutButton />}
+      sidebarFooterSlot={
+        <div>
+          <UserProfile />
+          <LogoutButton />
+        </div>
+      }
     >
       {children}
     </BaseLayout>

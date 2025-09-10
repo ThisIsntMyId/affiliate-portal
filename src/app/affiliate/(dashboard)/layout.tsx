@@ -1,6 +1,6 @@
 import { BaseLayout } from '@/components/BaseLayout';
 import { affiliateNavigationConfig } from './nav';
-import { BrandLogo, UpsellCard, LogoutButton } from './_components';
+import { BrandLogo, UserProfile, UpsellCard, LogoutButton } from './_components';
 
 export default function AffiliateLayout({
   children,
@@ -20,6 +20,7 @@ export default function AffiliateLayout({
       sidebarFooterSlot={
         <div className="space-y-4">
           <UpsellCard />
+          <UserProfile />
           <LogoutButton />
         </div>
       }

@@ -1,30 +1,33 @@
-interface UserProfileProps {
-  userType: 'admin' | 'brand' | 'affiliate';
-}
+import Link from 'next/link';
+import { Settings } from 'lucide-react';
 
-export function UserProfile({ userType }: UserProfileProps) {
-  const userData = {
-    admin: { name: 'John Admin', email: 'john@admin.com', role: 'Administrator' },
-    brand: { name: 'Sarah Brand', email: 'sarah@brand.com', role: 'Brand Manager' },
-    affiliate: { name: 'Mike Affiliate', email: 'mike@affiliate.com', role: 'Affiliate Partner' }
-  };
-
-  const user = userData[userType];
-
+export function UserProfile() {
   return (
-    <div className="p-4 border-b border-gray-200">
+    <div className="p-4 border-b border-gray-700">
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-          {user.name.split(' ').map(n => n[0]).join('')}
+        {/* Avatar */}
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
+          <span className="text-white font-semibold text-sm">MA</span>
         </div>
+        
+        {/* User Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
-            {user.name}
-          </p>
-          <p className="text-xs text-gray-500 truncate">
-            {user.role}
-          </p>
+          <p className="text-white font-medium text-sm truncate">Mike Affiliate</p>
+          <div className="flex items-center space-x-2 mt-1">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Affiliate Partner
+            </span>
+          </div>
         </div>
+        
+        {/* Settings Icon */}
+        <Link 
+          href="/affiliate/settings" 
+          className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition-colors"
+          title="Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </Link>
       </div>
     </div>
   );

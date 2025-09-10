@@ -1,6 +1,6 @@
 import { BaseLayout } from '@/components/BaseLayout';
 import { brandNavigationConfig } from './nav';
-import { BrandLogo, LogoutButton } from './_components';
+import { BrandLogo, UserProfile, LogoutButton } from './_components';
 
 export default function BrandLayout({
   children,
@@ -17,7 +17,12 @@ export default function BrandLayout({
           <BrandLogo />
         </div>
       }
-      sidebarFooterSlot={<LogoutButton />}
+      sidebarFooterSlot={
+        <div>
+          <UserProfile />
+          <LogoutButton />
+        </div>
+      }
     >
       {children}
     </BaseLayout>
