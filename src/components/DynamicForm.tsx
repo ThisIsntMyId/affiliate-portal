@@ -24,6 +24,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { FileUploader, FileInput, FileUploaderContent, FileUploaderItem } from '@/components/ui/file-upload'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { RichTextEditor } from '@/components/RichTextEditor'
 
 // Custom Error Class
 export class DynamicFormSubmissionError extends Error {
@@ -37,10 +38,38 @@ export class DynamicFormSubmissionError extends Error {
 }
 
 // Types
+
+/**
+ * Rich Text Editor Configuration
+ * 
+ * Example usage in FormFieldConfig:
+ * 
+ * // Minimal rich text editor
+ * {
+ *   name: "description",
+ *   label: "Description",
+ *   type: "richtext",
+ *   richtextConfig: {
+ *     variant: "minimal",
+ *     placeholder: "Enter description..."
+ *   }
+ * }
+ * 
+ * // Full rich text editor with advanced features
+ * {
+ *   name: "content",
+ *   label: "Content",
+ *   type: "richtext",
+ *   richtextConfig: {
+ *     variant: "full",
+ *     placeholder: "Enter detailed content..."
+ *   }
+ * }
+ */
 export interface FormFieldConfig {
   name: string
   label: string
-  type: 'input' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'image' | 'combobox' | 'number' | 'email'
+  type: 'input' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'image' | 'combobox' | 'number' | 'email' | 'richtext'
   required?: boolean
   placeholder?: string
   description?: string
@@ -51,6 +80,10 @@ export interface FormFieldConfig {
     multiple?: boolean
     accept?: string
     maxSize?: number
+  }
+  richtextConfig?: {
+    variant: 'minimal' | 'full'
+    placeholder?: string
   }
 }
 
@@ -77,6 +110,7 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
     switch (field.type) {
       case 'input':
       case 'textarea':
+      case 'richtext':
         fieldSchema = z.string()
         break
       case 'number':
@@ -164,6 +198,8 @@ function renderField(config: FormFieldConfig, form: FormType) {
       return <ImageField config={config} form={form} />
     case 'combobox':
       return <ComboboxField config={config} form={form} />
+    case 'richtext':
+      return <RichTextField config={config} form={form} />
     default:
       return <InputField config={config} form={form} />
   }
@@ -682,6 +718,27 @@ function ComboboxField({ config, form }: { config: FormFieldConfig; form: FormTy
           </Command>
         </PopoverContent>
       </Popover>
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
+      )}
+      {form.formState.errors[config.name] && (
+        <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
+      )}
+    </div>
+  )
+}
+
+function RichTextField({ config, form }: { config: FormFieldConfig; form: FormType }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={config.name}>{config.label}</Label>
+      <RichTextEditor
+        value={form.watch(config.name) as string || ''}
+        onChange={(html) => form.setValue(config.name, html)}
+        variant={config.richtextConfig?.variant || 'minimal'}
+        placeholder={config.richtextConfig?.placeholder || config.placeholder}
+        className="min-h-[120px]"
+      />
       {config.description && (
         <p className="text-sm text-muted-foreground">{config.description}</p>
       )}

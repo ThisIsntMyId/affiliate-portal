@@ -59,6 +59,30 @@ const demoConfig: FormFieldConfig[] = [
     description: "A short description about you (optional)"
   },
   
+  // Rich Text Editors
+  {
+    name: "description",
+    label: "Product Description (Minimal)",
+    type: "richtext",
+    required: false,
+    description: "A brief description with basic formatting options",
+    richtextConfig: {
+      variant: "minimal",
+      placeholder: "Enter a brief description with basic formatting..."
+    }
+  },
+  {
+    name: "detailedDescription",
+    label: "Detailed Description (Full Editor)",
+    type: "richtext",
+    required: false,
+    description: "A detailed description with full formatting capabilities including tables, images, and more",
+    richtextConfig: {
+      variant: "full",
+      placeholder: "Enter a detailed description with full formatting options..."
+    }
+  },
+  
   // Selection Fields
   {
     name: "country",
@@ -256,6 +280,8 @@ export default function FormsDemoPage() {
     price: 99,
     weight: 2,
     bio: "I'm a software developer passionate about building great user experiences.",
+    description: "<p>This is a <strong>minimal rich text</strong> example with <em>basic formatting</em> and <a href='#'>links</a>.</p>",
+    detailedDescription: "<h2>Full Rich Text Editor</h2><p>This demonstrates the <strong>full rich text editor</strong> with advanced features:</p><ul><li>Multiple heading levels</li><li>Text formatting (bold, italic, underline)</li><li>Lists and tables</li><li>Links and more</li></ul><p>Perfect for detailed content creation!</p>",
     country: "us",
     languages: ["js", "ts", "py"],
     notifications: true,
@@ -282,7 +308,8 @@ export default function FormsDemoPage() {
       <div className="bg-muted/30 rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-3">Features Demonstrated:</h2>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-          <li>✅ 12 different input types</li>
+          <li>✅ 14 different input types</li>
+          <li>✅ Rich text editor (minimal & full variants)</li>
           <li>✅ Prefix/suffix support for numbers</li>
           <li>✅ Auto-generated validation schemas</li>
           <li>✅ File upload with drag & drop</li>
