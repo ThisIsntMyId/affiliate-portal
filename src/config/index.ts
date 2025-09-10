@@ -33,8 +33,6 @@ const envSchema = z.object({
   // Cache
   CACHE_DRIVER: z.enum(["redis", "memory"]).default("memory"),
   REDIS_URL: z.string().optional(),
-  REDIS_PASSWORD: z.string().optional(),
-  REDIS_DB: z.number().default(0),
   
   // Storage
   STORAGE_DRIVER: z.enum(["s3", "local"]).default("local"),
@@ -96,8 +94,6 @@ export const config = {
     driver: env.CACHE_DRIVER,
     redis: {
       url: env.REDIS_URL,
-      password: env.REDIS_PASSWORD,
-      db: env.REDIS_DB,
     },
   },
   
