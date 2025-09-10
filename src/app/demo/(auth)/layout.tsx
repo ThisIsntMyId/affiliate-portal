@@ -1,4 +1,4 @@
-import { BrandLogo } from '../(dashboard)/components/BrandLogo';
+import { BrandLogo } from '../(dashboard)/_components/BrandLogo';
 
 export default function AuthLayout({
   children,

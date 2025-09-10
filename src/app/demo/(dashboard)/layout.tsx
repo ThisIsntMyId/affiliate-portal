@@ -1,6 +1,6 @@
 import { BaseLayout } from '@/components/BaseLayout';
 import { demoNavigationConfig } from './nav';
-import { BrandLogo, UserProfile, UpsellCard, LogoutButton } from './components';
+import { BrandLogo, UserProfile, UpsellCard, LogoutButton } from './_components';
 
 export default function DemoLayout({
   children,
