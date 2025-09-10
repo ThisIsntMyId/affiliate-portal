@@ -24,6 +24,258 @@ Each interface (API Routes, Actions, Pages) is optimized for its specific purpos
 - Clear boundaries
 - Minimal complexity
 
+## Configuration Management
+
+### Driver-Based Configuration Pattern
+
+The application uses a **driver-based configuration pattern** that allows switching between different implementations for core services through environment variables. This provides flexibility for different environments (development, staging, production) and makes the application easily configurable.
+
+### Configuration Structure
+
+**Location**: `src/config/index.ts`
+
+The configuration system uses **Zod validation** for type-safe environment variable parsing and provides a centralized configuration object that can be imported throughout the application.
+
+```typescript
+// src/config/index.ts
+import z from "zod";
+
+const envSchema = z.object({
+  // Application
+  PORT: z.number().default(3000),
+  APP_NAME: z.string().default("Affiliate Portal"),
+  APP_URL: z.string().default("http://localhost:3000"),
+  APP_ENV: z.enum(["development", "production", "test"]).default("development"),
+  
+  // Database
+  DATABASE_URL: z.string(),
+  
+  // Session
+  SESSION_JWT_SECRET: z.string(),
+  SESSION_COOKIE_NAME: z.string().default("afp-token"),
+  SESSION_COOKIE_DURATION: z.number().default(43200),
+  
+  // Email
+  MAIL_DRIVER: z.enum(["smtp", "log"]).default("log"),
+  MAIL_HOST: z.string().optional(),
+  MAIL_PORT: z.number().optional(),
+  MAIL_USER: z.string().optional(),
+  MAIL_PASS: z.string().optional(),
+  MAIL_FROM: z.string().optional(),
+  MAIL_FROM_NAME: z.string().optional(),
+  
+  // SMS
+  SMS_DRIVER: z.enum(["twilio", "log"]).default("log"),
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_PHONE_NUMBER: z.string().optional(),
+  
+  // Cache
+  CACHE_DRIVER: z.enum(["redis", "memory"]).default("memory"),
+  REDIS_URL: z.string().optional(),
+  REDIS_PASSWORD: z.string().optional(),
+  REDIS_DB: z.number().default(0),
+  
+  // Storage
+  STORAGE_DRIVER: z.enum(["s3", "local"]).default("local"),
+  LOCAL_PATH: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_S3_BUCKET: z.string().optional(),
+});
+
+const env = envSchema.parse(process.env);
+
+export const config = {
+  // Application
+  port: env.PORT,
+  app: {
+    name: env.APP_NAME,
+    url: env.APP_URL,
+    env: env.APP_ENV,
+  },
+  
+  // Database
+  db: {
+    url: env.DATABASE_URL,
+  },
+  
+  // Session
+  session: {
+    jwtSecret: env.SESSION_JWT_SECRET,
+    cookieName: env.SESSION_COOKIE_NAME,
+    cookieDuration: env.SESSION_COOKIE_DURATION,
+  },
+  
+  // Email
+  email: {
+    driver: env.MAIL_DRIVER,
+    smtp: {
+      host: env.MAIL_HOST,
+      port: env.MAIL_PORT,
+      user: env.MAIL_USER,
+      pass: env.MAIL_PASS,
+      from: env.MAIL_FROM,
+      fromName: env.MAIL_FROM_NAME,
+    },
+  },
+  
+  // SMS
+  sms: {
+    driver: env.SMS_DRIVER,
+    twilio: {
+      accountSid: env.TWILIO_ACCOUNT_SID,
+      authToken: env.TWILIO_AUTH_TOKEN,
+      phoneNumber: env.TWILIO_PHONE_NUMBER,
+    },
+  },
+  
+  // Cache
+  cache: {
+    driver: env.CACHE_DRIVER,
+    redis: {
+      url: env.REDIS_URL,
+      password: env.REDIS_PASSWORD,
+      db: env.REDIS_DB,
+    },
+  },
+  
+  // Storage
+  storage: {
+    driver: env.STORAGE_DRIVER,
+    s3: {
+      accessKeyId: env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+      region: env.AWS_REGION,
+      bucket: env.AWS_S3_BUCKET,
+    },
+    local: {
+      path: env.LOCAL_PATH,
+    },
+  },
+};
+```
+
+### Supported Drivers
+
+#### Email Drivers
+- **`smtp`**: Production email delivery via SMTP
+- **`log`**: Development logging (emails logged to console)
+
+#### SMS Drivers
+- **`twilio`**: Production SMS delivery via Twilio
+- **`log`**: Development logging (SMS logged to console)
+
+#### Storage Drivers
+- **`s3`**: Production file storage via AWS S3
+- **`local`**: Development local file storage
+
+#### Cache Drivers
+- **`redis`**: Production caching via Redis
+- **`memory`**: Development in-memory caching
+
+### Environment Configuration
+
+**Location**: `.env.example`
+
+Environment variables are organized by service categories with clear documentation:
+
+```bash
+# APPLICATION
+APP_NAME="Affiliate Portal"
+APP_URL="http://localhost:3000"
+APP_ENV="development"
+
+# DATABASE
+DATABASE_URL="postgresql://username:password@localhost:5432/affiliate_portal"
+
+# SESSION
+SESSION_JWT_SECRET="your-jwt-secret"
+SESSION_COOKIE_NAME="afp-token"
+SESSION_COOKIE_DURATION="43200"
+
+# MAIL
+MAIL_DRIVER="smtp" # smtp, log
+MAIL_HOST="smtp.gmail.com"
+MAIL_PORT=587
+MAIL_USER="your-email@gmail.com"
+MAIL_PASS="your-app-password"
+MAIL_FROM="noreply@affiliate-portal.com"
+MAIL_FROM_NAME="Affiliate Portal"
+
+# SMS
+SMS_DRIVER="twilio" # twilio, log
+TWILIO_ACCOUNT_SID="your-twilio-account-sid"
+TWILIO_AUTH_TOKEN="your-twilio-auth-token"
+TWILIO_PHONE_NUMBER="+1234567890"
+
+# CACHE
+CACHE_DRIVER="memory" # memory, redis
+# REDIS_URL="redis://localhost:6379"
+# REDIS_PASSWORD=""
+# REDIS_DB=0
+
+# STORAGE
+STORAGE_DRIVER="local" # local, s3
+# AWS_ACCESS_KEY_ID="your-aws-access-key-id"
+# AWS_SECRET_ACCESS_KEY="your-aws-secret-access-key"
+# AWS_REGION="us-east-1"
+# AWS_S3_BUCKET="your-s3-bucket-name"
+```
+
+### Usage in Services
+
+Services can use the configuration to determine which driver to use:
+
+```typescript
+// services/email.service.ts
+import { config } from '@/config';
+
+export const EmailService = {
+  async sendEmail(params: EmailParams) {
+    switch (config.email.driver) {
+      case 'smtp':
+        return this.sendViaSMTP(params);
+      case 'log':
+        return this.logEmail(params);
+      default:
+        throw new Error(`Unsupported email driver: ${config.email.driver}`);
+    }
+  },
+
+  async sendViaSMTP(params: EmailParams) {
+    // SMTP implementation using config.email.smtp
+  },
+
+  async logEmail(params: EmailParams) {
+    console.log('Email would be sent:', params);
+  }
+};
+```
+
+### Benefits
+
+✅ **Environment Flexibility**: Easy switching between development and production drivers  
+✅ **Type Safety**: Full TypeScript support with Zod validation  
+✅ **Centralized Configuration**: Single source of truth for all configuration  
+✅ **Validation**: Environment variables are validated at startup  
+✅ **Documentation**: Clear documentation of all available options  
+✅ **Extensibility**: Easy to add new drivers or configuration options  
+✅ **Development Friendly**: Sensible defaults for development environment  
+
+### Architecture Decision
+
+**Configuration Management**: The application uses a driver-based configuration pattern with Zod validation. This approach provides:
+
+- **Type safety** through Zod schema validation
+- **Environment flexibility** via driver switching
+- **Centralized management** of all configuration
+- **Clear documentation** of available options
+- **Development-friendly defaults** for easy setup
+
+This configuration architecture ensures that the application can be easily configured for different environments while maintaining type safety and providing clear documentation for all configuration options.
+
 ## Directory Structure
 
 ### App Router Structure (Next.js 13+)
