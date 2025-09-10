@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
-import * as LucideIcons from 'lucide-react';
 import { NavigationConfig, MenuItem } from '@/types/navigation';
 
 interface SidebarProps {
@@ -34,10 +33,8 @@ export function Sidebar({ navigationConfig, headerSlot, footerSlot }: SidebarPro
     return { groups, ungrouped };
   }, [navigationConfig.items, pathname]);
 
-  const renderIcon = (iconName: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const IconComponent = (LucideIcons as any)[iconName];
-    return IconComponent ? <IconComponent className="w-5 h-5" /> : null;
+  const renderIcon = (IconComponent: MenuItem['icon']) => {
+    return <IconComponent className="w-5 h-5" />;
   };
 
   const NavigationItem = ({ item }: { item: MenuItem }) => {

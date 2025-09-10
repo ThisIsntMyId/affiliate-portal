@@ -1,6 +1,8 @@
+import { LucideIcon } from 'lucide-react';
+
 export interface MenuItem {
   url: string;
-  icon: string; // Lucide icon name
+  icon: LucideIcon; // Lucide icon component
   title: string;
   group?: string;
   isActive?: boolean;
