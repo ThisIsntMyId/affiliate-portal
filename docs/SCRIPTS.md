@@ -19,8 +19,24 @@ scripts/
 - Context is clear from `scripts/` directory
 
 ## Execution
+
+### Recommended: Using npm Scripts
 ```bash
-# Direct execution with tsx
+# Local development (with .env file)
+npm run run:script-local scripts/hello.ts
+npm run run:script-local scripts/create-admin.ts -- --name mark --email mark@mail.com
+
+# Production/CI (environment variables already loaded)
+npm run run:script scripts/hello.ts
+npm run run:script scripts/create-admin.ts -- --name mark --email mark@mail.com
+
+# Show help
+npm run run:script-local scripts/create-admin.ts -- --help
+```
+
+### Alternative: Direct tsx execution
+```bash
+# Direct execution with tsx (requires manual .env loading)
 npx tsx scripts/hello.ts
 npx tsx scripts/create-admin.ts --name mark --email mark@mail.com
 
@@ -52,6 +68,8 @@ const scriptFunction = async ({ param1, param2 }: { param1: string; param2: stri
     const args = argsSchema.parse({ param1, param2 });
     
     console.log('🚀 Starting script...');
+    console.log(`App: ${config.app.name}`);
+    console.log(`Environment: ${config.app.env}`);
     
     // Use system models for database operations
     // const users = await AdminModel.getAllUsers();
@@ -81,9 +99,10 @@ program.parse();
 ## Best Practices
 
 ### Configuration Access
-- Import config from `../src/config` - automatically loads env vars
-- Use typed configuration values
-- Validate required environment variables
+- Import config from `../src/config` - automatically loads and validates env vars
+- Use typed configuration values with full type safety
+- Config uses Zod coercion to handle string-to-number conversion from .env files
+- No need to manually load .env files when using npm scripts
 
 ### Database Access
 - **Use System Models**: Import from `../src/models/system/` for full system access
@@ -133,6 +152,29 @@ program.parse();
 - Connection tests
 - Development helpers
 
+## NPM Scripts
+
+The project includes two npm scripts for running scripts in different environments:
+
+### run:script-local
+- **Purpose**: Local development with .env file loading
+- **Command**: `npm run run:script-local scripts/script-name.ts`
+- **Features**: Automatically loads .env file using dotenv-cli
+- **Use Case**: Development, testing, local operations
+
+### run:script
+- **Purpose**: Production/CI environments
+- **Command**: `npm run run:script scripts/script-name.ts`
+- **Features**: Direct tsx execution (assumes env vars already loaded)
+- **Use Case**: CI/CD, serverless, production deployments
+
+### Benefits
+- **Environment Agnostic**: Works in any environment
+- **Clean Commands**: Easy to remember and type
+- **No Code Changes**: Scripts stay clean without dotenv imports
+- **Team Friendly**: Everyone uses the same commands
+- **CI/CD Ready**: Production environments just use `run:script`
+
 ## Dependencies
 
 ### Commander.js
@@ -143,6 +185,13 @@ npm install --save-dev commander
 npm install --save-dev @types/commander
 ```
 
+### dotenv-cli
+Used by npm scripts to load .env files (already installed):
+
+```bash
+npm install --save-dev dotenv-cli
+```
+
 ### TypeScript Execution
 Scripts are executed using `tsx` (already installed):
 
@@ -151,7 +200,7 @@ npx tsx scripts/script-name.ts
 ```
 
 ## Environment Variables
-Scripts automatically have access to environment variables through the config import. No additional setup required.
+Scripts automatically have access to environment variables through the config import. The config uses Zod coercion to automatically convert string values from .env files to the correct types (numbers, booleans, etc.). No additional setup required.
 
 ## Examples
 
@@ -162,20 +211,32 @@ import { Command } from 'commander';
 import { config } from '../src/config';
 
 const hello = async ({ name }: { name?: string }) => {
-  console.log(`Hello ${name ? name : 'World'} from ${config.app.name}!`);
-  console.log(`Environment: ${config.app.env}`);
-  console.log(`Database URL: ${config.db.url}`);
+  console.log(`🚀 Hello ${name ? name : 'World'} from ${config.app.name}!`);
+  console.log(`📱 Environment: ${config.app.env}`);
+  console.log(`🌐 App URL: ${config.app.url}`);
+  console.log(`✅ Script completed successfully`);
 };
 
 const program = new Command();
 program
   .name('hello')
-  .description('Say hello and show config')
+  .description('Say hello and show app configuration')
   .version('1.0.0')
   .option('-n, --name <name>', 'Name to greet')
   .action(hello);
 
 program.parse();
+```
+
+**Usage:**
+```bash
+# Local development
+npm run run:script-local scripts/hello.ts
+npm run run:script-local scripts/hello.ts -- --name "Developer"
+
+# Production/CI
+npm run run:script scripts/hello.ts
+npm run run:script scripts/hello.ts -- --name "Developer"
 ```
 
 ### Admin User Creation
@@ -198,6 +259,8 @@ const createAdmin = async ({ name, email, role }: { name: string; email: string;
     const args = argsSchema.parse({ name, email, role });
     
     console.log('🚀 Creating admin user...');
+    console.log(`App: ${config.app.name}`);
+    console.log(`Environment: ${config.app.env}`);
     console.log('Args:', args);
     
     // const newUser = await AdminModel.createUser({
@@ -224,6 +287,15 @@ program
   .action(createAdmin);
 
 program.parse();
+```
+
+**Usage:**
+```bash
+# Local development
+npm run run:script-local scripts/create-admin.ts -- --name "John" --email "john@example.com" --role "admin"
+
+# Production/CI
+npm run run:script scripts/create-admin.ts -- --name "John" --email "john@example.com" --role "admin"
 ```
 
 ## Security Notes

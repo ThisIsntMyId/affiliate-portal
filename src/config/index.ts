@@ -2,7 +2,7 @@ import z from "zod";
 
 const envSchema = z.object({
   // Application
-  PORT: z.number().default(3000),
+  PORT: z.coerce.number().default(3000),
   APP_NAME: z.string().default("Affiliate Portal"),
   APP_URL: z.string().default("http://localhost:3000"),
   APP_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -14,12 +14,12 @@ const envSchema = z.object({
   // Session
   SESSION_JWT_SECRET: z.string().min(32, "SESSION_JWT_SECRET must be at least 32 characters long"),
   SESSION_COOKIE_NAME: z.string().default("afp-token"),
-  SESSION_COOKIE_DURATION: z.number().default(43200),
+  SESSION_COOKIE_DURATION: z.coerce.number().default(43200),
   
   // Email
   MAIL_DRIVER: z.enum(["smtp", "log"]).default("log"),
   MAIL_HOST: z.string().optional(),
-  MAIL_PORT: z.number().optional(),
+  MAIL_PORT: z.coerce.number().optional(),
   MAIL_USER: z.string().optional(),
   MAIL_PASS: z.string().optional(),
   MAIL_FROM: z.string().optional(),
