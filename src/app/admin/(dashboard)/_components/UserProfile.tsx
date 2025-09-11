@@ -1,18 +1,41 @@
+'use client';
+
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
+import { useAuth } from './AuthProvider';
 
 export function UserProfile() {
+  const { user } = useAuth();
+
+  if (!user) return null;
+
+  const initials = user.name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div className="p-4 border-b border-gray-700">
       <div className="flex items-center space-x-3">
         {/* Avatar */}
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full flex items-center justify-center">
-          <span className="text-white font-semibold text-sm">JA</span>
-        </div>
+        {user.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.avatar}
+            alt={`${user.name} avatar`}
+            className="w-10 h-10 rounded-full"
+          />
+        ) : (
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-semibold text-sm">{initials}</span>
+          </div>
+        )}
         
         {/* User Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-white font-medium text-sm truncate">John Admin</p>
+          <p className="text-white font-medium text-sm truncate">{user.name}</p>
           <div className="flex items-center space-x-2 mt-1">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
               Administrator

@@ -14,6 +14,9 @@ import {
 
 // Admin panel route definitions
 const routes: RouteConfig = {
+  // Auth routes
+  'admin.login': '/admin/login',
+  
   // Dashboard routes
   'admin.dashboard': '/admin',
   
