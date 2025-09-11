@@ -6,12 +6,13 @@ const envSchema = z.object({
   APP_NAME: z.string().default("Affiliate Portal"),
   APP_URL: z.string().default("http://localhost:3000"),
   APP_ENV: z.enum(["development", "production", "test"]).default("development"),
+  APP_SECRET: z.string().min(32, "APP_SECRET must be at least 32 characters long"),
   
   // Database
   DATABASE_URL: z.string(),
   
   // Session
-  SESSION_JWT_SECRET: z.string(),
+  SESSION_JWT_SECRET: z.string().min(32, "SESSION_JWT_SECRET must be at least 32 characters long"),
   SESSION_COOKIE_NAME: z.string().default("afp-token"),
   SESSION_COOKIE_DURATION: z.number().default(43200),
   
@@ -53,6 +54,7 @@ export const config = {
     name: env.APP_NAME,
     url: env.APP_URL,
     env: env.APP_ENV,
+    secret: env.APP_SECRET,
   },
   
   // Database
