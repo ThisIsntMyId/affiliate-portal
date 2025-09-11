@@ -291,45 +291,68 @@ The application uses a **panel-scoped model architecture** where each panel (adm
 - Handle complex queries and business logic
 - Provide panel-specific data views with appropriate security boundaries
 
-#### Directory Structure
+#### Complete Directory Structure
 
 ```
 src/
   models/
-    admin/
-      ├── auth.model.ts          # Admin authentication & user data access
-      ├── brand.model.ts          # Brand data access for admin context
-      ├── affiliate.model.ts      # Affiliate data access for admin context
-      ├── campaign.model.ts       # Campaign data access for admin context
-      └── payout.model.ts         # Payout data access for admin context
+    admin/                 # Admin panel models (full access)
+      ├── auth.model.ts
+      ├── brand.model.ts
+      ├── affiliate.model.ts
+      ├── campaign.model.ts
+      └── payout.model.ts
     
-    brand/
-      ├── auth.model.ts           # Brand authentication & user data access
-      ├── affiliate.model.ts      # Affiliate data access for brand context
-      ├── campaign.model.ts       # Campaign data access for brand context
-      └── payout.model.ts         # Payout data access for brand context
+    brand/                 # Brand panel models (brand-scoped)
+      ├── auth.model.ts
+      ├── affiliate.model.ts
+      ├── campaign.model.ts
+      └── payout.model.ts
     
-    affiliate/
-      ├── auth.model.ts           # Affiliate authentication & user data access
-      ├── brand.model.ts          # Brand data access for affiliate context (limited)
-      ├── campaign.model.ts       # Campaign data access for affiliate context
-      └── payout.model.ts         # Payout data access for affiliate context
+    affiliate/             # Affiliate panel models (affiliate-scoped)
+      ├── auth.model.ts
+      ├── brand.model.ts
+      ├── campaign.model.ts
+      └── payout.model.ts
+    
+    public/                # Public marketing models (read-only, public data)
+      ├── brand.model.ts
+      ├── campaign.model.ts
+      └── stats.model.ts
+    
+    system/                # System/CLI models (full access, no restrictions)
+      ├── admin.model.ts
+      ├── brand.model.ts
+      ├── affiliate.model.ts
+      ├── campaign.model.ts
+      ├── payout.model.ts
+      └── report.model.ts
 ```
 
-#### Naming Convention
+#### Naming Convention & Context Rationale
 
-- **Singular naming**: `admin.model.ts` (not `admins.model.ts`)
-- **Panel context**: Each panel folder provides the context
-- **Auth models**: `auth.model.ts` for authentication-related data access
-- **Entity models**: `brand.model.ts`, `affiliate.model.ts`, etc.
+**Model Naming Philosophy:**
+- **Singular naming**: `brand.model.ts` (not `brands.model.ts`)
+- **No context prefix**: `BrandModel` (not `AdminBrandModel` or `SystemBrandModel`)
+- **Import context**: The import path provides the context (`@/models/admin/brand.model.ts`)
+- **Consistent naming**: Same model name across all contexts for clarity
 
-#### Model Examples
+**Context Determination:**
+The folder structure determines the model's context and access level:
+- `models/admin/brand.model.ts` → Admin context (full access)
+- `models/brand/brand.model.ts` → Brand context (brand-scoped)
+- `models/affiliate/brand.model.ts` → Affiliate context (limited access)
+- `models/public/brand.model.ts` → Public context (read-only, public data)
+- `models/system/brand.model.ts` → System context (full access, no restrictions)
 
-**Admin Panel Models** - Full access to all data:
+#### Brand Model Context Examples
 
+The same entity (Brand) is handled differently across contexts:
+
+**Admin Context** - Full system access:
 ```typescript
 // models/admin/brand.model.ts
-export const AdminBrandModel = {
+export const BrandModel = {
   async getAllBrands(): Promise<BrandSummary[]> {
     // Returns all brands with admin-level details
     return await db.select({
@@ -340,17 +363,13 @@ export const AdminBrandModel = {
       status: brands.status,
       createdAt: brands.createdAt,
       totalAffiliates: sql<number>`count(${affiliates.id})`,
-      totalRevenue: sql<number>`sum(${conversions.saleAmount})`
+      totalRevenue: sql<number>`sum(${conversions.saleAmount})`,
+      systemSettings: brands.systemSettings
     })
     .from(brands)
     .leftJoin(affiliates, eq(affiliates.brandId, brands.id))
     .leftJoin(conversions, eq(conversions.brandId, brands.id))
     .groupBy(brands.id);
-  },
-
-  async getBrandDetails(id: number): Promise<BrandDetails> {
-    // Returns complete brand information for admin
-    return await db.select().from(brands).where(eq(brands.id, id));
   },
 
   async updateBrandStatus(id: number, status: string): Promise<boolean> {
@@ -361,20 +380,10 @@ export const AdminBrandModel = {
 };
 ```
 
-**Brand Panel Models** - Brand's own data and affiliate management:
-
+**Brand Context** - Brand's own data:
 ```typescript
-// models/brand/auth.model.ts
-export const BrandAuthModel = {
-  async authenticate(email: string, password: string): Promise<Brand | null> {
-    // Brand authentication with their own data
-    return await db.select().from(brands)
-      .where(and(
-        eq(brands.email, email),
-        eq(brands.status, 'active')
-      ));
-  },
-
+// models/brand/brand.model.ts (auth.model.ts for brand's own data)
+export const AuthModel = {
   async getBrandProfile(id: number): Promise<BrandProfile> {
     // Returns brand's own profile data
     return await db.select({
@@ -382,48 +391,23 @@ export const BrandAuthModel = {
       name: brands.name,
       email: brands.email,
       website: brands.website,
-      settings: brands.settings
+      settings: brands.settings,
+      publicSettings: brands.publicSettings
     }).from(brands).where(eq(brands.id, id));
-  }
-};
-
-// models/brand/affiliate.model.ts
-export const BrandAffiliateModel = {
-  async getAffiliates(brandId: number): Promise<AffiliateSummary[]> {
-    // Returns affiliates for this specific brand
-    return await db.select({
-      id: affiliates.id,
-      name: affiliates.name,
-      email: affiliates.email,
-      status: affiliates.status,
-      totalClicks: sql<number>`count(${clicks.id})`,
-      totalConversions: sql<number>`count(${conversions.id})`
-    })
-    .from(affiliates)
-    .leftJoin(clicks, eq(clicks.affiliateId, affiliates.id))
-    .leftJoin(conversions, eq(conversions.affiliateId, affiliates.id))
-    .where(eq(affiliates.brandId, brandId))
-    .groupBy(affiliates.id);
   },
 
-  async approveAffiliate(affiliateId: number, brandId: number): Promise<boolean> {
-    // Brand can only approve their own affiliates
-    await db.update(affiliates)
-      .set({ status: 'approved' })
-      .where(and(
-        eq(affiliates.id, affiliateId),
-        eq(affiliates.brandId, brandId)
-      ));
+  async updateBrandProfile(id: number, data: UpdateBrandData): Promise<boolean> {
+    // Brand can only update their own profile
+    await db.update(brands).set(data).where(eq(brands.id, id));
     return true;
   }
 };
 ```
 
-**Affiliate Panel Models** - Limited access to brand data:
-
+**Affiliate Context** - Limited public data:
 ```typescript
 // models/affiliate/brand.model.ts
-export const AffiliateBrandModel = {
+export const BrandModel = {
   async getBrandPublicInfo(brandId: number): Promise<BrandPublicInfo> {
     // Returns only public brand information for affiliates
     return await db.select({
@@ -431,7 +415,8 @@ export const AffiliateBrandModel = {
       name: brands.name,
       website: brands.website,
       logo: brands.logo,
-      description: brands.description
+      description: brands.description,
+      publicSettings: brands.publicSettings
     }).from(brands).where(eq(brands.id, brandId));
   },
 
@@ -449,16 +434,114 @@ export const AffiliateBrandModel = {
       eq(campaigns.brandId, brandId),
       eq(campaigns.isActive, true)
     ));
-  },
-
-  async isBrandActive(brandId: number): Promise<boolean> {
-    // Simple check if brand is active
-    const brand = await db.select({ status: brands.status })
-      .from(brands)
-      .where(eq(brands.id, brandId));
-    return brand[0]?.status === 'active';
   }
 };
+```
+
+**Public Context** - Marketing site data:
+```typescript
+// models/public/brand.model.ts
+export const BrandModel = {
+  async getFeaturedBrands(): Promise<PublicBrandInfo[]> {
+    // Only public information for marketing site
+    return await db.select({
+      id: brands.id,
+      name: brands.name,
+      website: brands.website,
+      logo: brands.logo,
+      description: brands.description,
+      isActive: brands.isActive
+    })
+    .from(brands)
+    .where(and(
+      eq(brands.isActive, true),
+      eq(brands.isPublic, true)
+    ))
+    .limit(10);
+  },
+
+  async getBrandBySlug(slug: string): Promise<PublicBrandDetails | null> {
+    // Public brand page data
+    return await db.select({
+      id: brands.id,
+      name: brands.name,
+      website: brands.website,
+      logo: brands.logo,
+      description: brands.description,
+      publicSettings: brands.publicSettings
+    })
+    .from(brands)
+    .where(and(
+      eq(brands.slug, slug),
+      eq(brands.isActive, true),
+      eq(brands.isPublic, true)
+    ));
+  }
+};
+```
+
+**System Context** - Full access for CLI/Jobs:
+```typescript
+// models/system/brand.model.ts
+export const BrandModel = {
+  async getAllBrands(): Promise<Brand[]> {
+    // Full access to all brand data for system operations
+    return await db.select().from(brands);
+  },
+
+  async getBrandStats(): Promise<BrandStats> {
+    // System-level brand statistics
+    return await db.select({
+      totalBrands: sql<number>`count(${brands.id})`,
+      activeBrands: sql<number>`count(case when ${brands.status} = 'active' then 1 end)`,
+      totalRevenue: sql<number>`sum(${conversions.saleAmount})`
+    })
+    .from(brands)
+    .leftJoin(conversions, eq(conversions.brandId, brands.id));
+  },
+
+  async bulkUpdateBrands(updates: BrandUpdate[]): Promise<void> {
+    // System can perform bulk operations
+    for (const update of updates) {
+      await db.update(brands).set(update.data).where(eq(brands.id, update.id));
+    }
+  }
+};
+```
+
+#### Context Access Matrix
+
+| **Context** | **Access Level** | **Authentication** | **Use Case** | **Brand Data Access** |
+|-------------|------------------|-------------------|--------------|----------------------|
+| **Admin** | Full system access | Admin auth required | Admin panel | All brands + system data |
+| **Brand** | Brand-scoped access | Brand auth required | Brand panel | Own brand data only |
+| **Affiliate** | Affiliate-scoped access | Affiliate auth required | Affiliate panel | Public brand data only |
+| **Public** | Read-only public data | No auth required | Marketing site | Public brand listings |
+| **System** | Full system access | No auth (CLI/Jobs) | Scripts & cron jobs | All brands + bulk operations |
+
+#### Usage Examples
+
+**Import Context Examples:**
+```typescript
+// Admin panel usage
+import { BrandModel } from '@/models/admin/brand.model';
+// → Full access to all brand data
+
+// Brand panel usage  
+import { AuthModel } from '@/models/brand/auth.model';
+// → Brand's own data access
+
+// Affiliate panel usage
+import { BrandModel } from '@/models/affiliate/brand.model';
+// → Limited public brand data
+
+// Public marketing site usage
+import { BrandModel } from '@/models/public/brand.model';
+// → Read-only public brand listings
+
+// CLI/Job usage
+import { BrandModel } from '@/models/system/brand.model';
+// → Full system access for bulk operations
 ```
 
 #### Security Benefits
