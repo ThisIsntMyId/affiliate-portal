@@ -1802,6 +1802,273 @@ getFullRoute('demo.users.show', { id: '123' })  // 'https://app.com/demo/users/1
 
 This routing architecture ensures that route changes can be made in one place without affecting the rest of the application, while providing full TypeScript support for route names, parameters, and query strings.
 
+## Server/Client Component Architecture
+
+### Component Pattern Philosophy
+
+The application follows a clear separation between **Server Components** and **Client Components** based on their functionality and interactivity requirements:
+
+- **Server Components**: Used for static content, data fetching, and server-side rendering
+- **Client Components**: Used for interactive elements, forms, buttons, and client-side functionality
+
+### Folder Structure Pattern
+
+Each feature module follows a consistent folder structure that separates static pages from interactive components:
+
+```
+app/admin/brands/
+├── (list)/
+│   ├── page.tsx              # Server component - static list page
+│   └── ExportBrands.tsx      # Client component - interactive export button
+├── (view)/
+│   ├── page.tsx              # Server component - static view page
+│   ├── ApproveBrandButton.tsx # Client component - interactive approval button
+│   └── SuspendBrandButton.tsx # Client component - interactive suspension button
+└── (edit)/
+    ├── page.tsx              # Server component - static edit page wrapper
+    └── BrandForm.tsx         # Client component - interactive form
+```
+
+### Component Responsibilities
+
+#### Server Components (`page.tsx` files)
+- **Data fetching**: Load data from models and databases
+- **Server-side rendering**: Generate static HTML for SEO and performance
+- **Layout and structure**: Define page layout and static content
+- **Authentication checks**: Verify user permissions server-side
+- **Static content**: Display text, images, and non-interactive elements
+
+**Example Server Component:**
+```typescript
+// app/admin/brands/(list)/page.tsx
+import { BrandModel } from '@/models/admin/brand.model';
+import { getCurrentUser } from '@/auth/user';
+import { DynamicTable } from '@/components/DynamicTable';
+import { ExportBrands } from './ExportBrands';
+
+export default async function BrandsListPage() {
+  // Server-side data fetching
+  const user = await getCurrentUser();
+  if (!user) redirect('/admin/login');
+  
+  const brands = await BrandModel.getAllBrands();
+  
+  // Table configuration for server-rendered data
+  const columns = [
+    { key: 'name', label: 'Brand Name', type: 'text' as const },
+    { key: 'email', label: 'Email', type: 'text' as const },
+    { key: 'status', label: 'Status', type: 'tag' as const, tagColors: { active: 'bg-green-500', inactive: 'bg-red-500' } },
+    { key: 'createdAt', label: 'Created', type: 'text' as const },
+    { 
+      key: 'actions', 
+      label: 'Actions', 
+      type: 'actions' as const,
+      actions: [
+        { label: 'View', url: `/admin/brands/${brands[0]?.id}` },
+        { label: 'Edit', url: `/admin/brands/${brands[0]?.id}/edit` }
+      ]
+    }
+  ];
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Brands</h1>
+        {/* Server component renders static content */}
+        <p className="text-gray-600">Total: {brands.length} brands</p>
+      </div>
+      
+      {/* Static table rendering with server data */}
+      <DynamicTable
+        data={brands}
+        columns={columns}
+        title="Brand Management"
+        description="Manage all brands in the system"
+        headerActions={[<ExportBrands key="export" brands={brands} />]}
+        searchable={true}
+        filterable={true}
+        sortable={true}
+        paginationEnabled={true}
+        onAction={(action) => {
+          // Server component handles data fetching, not client actions
+          console.log('Table action:', action);
+        }}
+      />
+    </div>
+  );
+}
+```
+
+#### Client Components (Interactive elements)
+- **User interactions**: Handle clicks, form submissions, and user input
+- **State management**: Manage component state and form data
+- **API calls**: Make client-side requests to actions or API routes
+- **Real-time updates**: Handle dynamic content changes
+- **Event handling**: Process user events and interactions
+
+**Example Client Component with ActionButton:**
+```typescript
+// app/admin/brands/(list)/ExportBrands.tsx
+'use client';
+
+import { ActionButton } from '@/components/ActionButton';
+import { exportBrandsAction } from '@/actions/admin/brands.action';
+import { Download } from 'lucide-react';
+
+interface ExportBrandsProps {
+  brands: Brand[];
+}
+
+export function ExportBrands({ brands }: ExportBrandsProps) {
+  const handleExport = async () => {
+    await exportBrandsAction(brands);
+  };
+  
+  return (
+    <ActionButton
+      onClick={handleExport}
+      variant="outline"
+      size="sm"
+      loadingText="Exporting..."
+      confirmation={{
+        enabled: true,
+        title: "Export Brands",
+        description: `This will export ${brands.length} brands to a CSV file. Continue?`,
+        confirmText: "Export",
+        cancelText: "Cancel",
+        icon: <Download className="h-6 w-6 text-blue-500" />
+      }}
+    >
+      <Download className="h-4 w-4 mr-2" />
+      Export Brands
+    </ActionButton>
+  );
+}
+```
+
+**Example Client Component with DynamicForm:**
+```typescript
+// app/admin/brands/(edit)/BrandForm.tsx
+'use client';
+
+import { DynamicForm, FormFieldConfig } from '@/components/DynamicForm';
+import { updateBrandAction } from '@/actions/admin/brands.action';
+
+interface BrandFormProps {
+  brand: Brand;
+}
+
+export function BrandForm({ brand }: BrandFormProps) {
+  const formConfig: FormFieldConfig[] = [
+    {
+      name: 'name',
+      label: 'Brand Name',
+      type: 'input',
+      required: true,
+      placeholder: 'Enter brand name'
+    },
+    {
+      name: 'email',
+      label: 'Email Address',
+      type: 'email',
+      required: true,
+      placeholder: 'brand@example.com'
+    },
+    {
+      name: 'website',
+      label: 'Website',
+      type: 'input',
+      placeholder: 'https://example.com'
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'richtext',
+      richtextConfig: {
+        variant: 'minimal',
+        placeholder: 'Enter brand description...'
+      }
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Inactive', value: 'inactive' }
+      ]
+    },
+    {
+      name: 'isPublic',
+      label: 'Public Brand',
+      type: 'switch',
+      description: 'Allow affiliates to see this brand'
+    }
+  ];
+
+  const handleSubmit = async (values: Record<string, unknown>) => {
+    await updateBrandAction(brand.id, values);
+  };
+
+  return (
+    <DynamicForm
+      config={formConfig}
+      onSubmit={handleSubmit}
+      defaultValues={brand}
+      title="Edit Brand"
+      description="Update brand information and settings"
+      submitText="Update Brand"
+      loadingText="Updating..."
+      submitButtonAlign="right"
+    />
+  );
+}
+```
+
+### Folder Structure Benefits
+
+✅ **Clear separation**: Static vs interactive components are visually separated  
+✅ **Performance optimization**: Server components reduce client-side JavaScript  
+✅ **SEO friendly**: Static content is server-rendered for better SEO  
+✅ **Maintainability**: Easy to identify which components need client-side logic  
+✅ **Bundle optimization**: Only interactive components are included in client bundle  
+✅ **Scalability**: Pattern scales consistently across all feature modules  
+
+### Implementation Guidelines
+
+#### When to Use Server Components
+- **Page layouts and structure**
+- **Data fetching and display**
+- **Static content and text**
+- **SEO-critical content**
+- **Authentication and authorization checks**
+
+#### When to Use Client Components
+- **Forms and form handling**
+- **Buttons with click handlers**
+- **Interactive UI elements**
+- **State management**
+- **Real-time updates**
+- **User input processing**
+
+#### Naming Conventions
+- **Server Components**: Use descriptive names like `page.tsx`, `layout.tsx`
+- **Client Components**: Use action-oriented names like `ExportButton.tsx`, `ApproveForm.tsx`
+- **Mixed Components**: Use clear prefixes like `Interactive` or `Client`
+
+### Architecture Decision
+
+**Component Architecture**: The application uses a clear separation between Server and Client Components based on functionality. This approach provides:
+
+- **Performance optimization** through server-side rendering for static content
+- **Clear boundaries** between static and interactive functionality
+- **Maintainable code** with obvious component responsibilities
+- **SEO benefits** through server-rendered static content
+- **Bundle optimization** by only including necessary client-side code
+
+This component architecture ensures that the application leverages Next.js 13+ App Router capabilities while maintaining clear separation of concerns and optimal performance.
+
 ## Conclusion
 
 This architecture provides a solid foundation for the Affiliate Portal application. It balances simplicity with scalability, follows established patterns, and provides clear separation of concerns. The modular approach allows for easy maintenance and future enhancements while keeping the codebase understandable and maintainable.
