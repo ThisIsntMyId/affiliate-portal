@@ -276,6 +276,234 @@ export const EmailService = {
 
 This configuration architecture ensures that the application can be easily configured for different environments while maintaining type safety and providing clear documentation for all configuration options.
 
+## Model Architecture
+
+### Panel-Scoped Model Structure
+
+The application uses a **panel-scoped model architecture** where each panel (admin, brand, affiliate) has its own set of models that provide data access tailored to that panel's specific needs and security requirements.
+
+#### Model Philosophy
+
+**Models are Database Access Layers**, not ORM entities. They can:
+- Return single rows, multiple rows, or aggregated data
+- Transform data that doesn't match database structure
+- Return boolean results for validation/checks
+- Handle complex queries and business logic
+- Provide panel-specific data views with appropriate security boundaries
+
+#### Directory Structure
+
+```
+src/
+  models/
+    admin/
+      ├── auth.model.ts          # Admin authentication & user data access
+      ├── brand.model.ts          # Brand data access for admin context
+      ├── affiliate.model.ts      # Affiliate data access for admin context
+      ├── campaign.model.ts       # Campaign data access for admin context
+      └── payout.model.ts         # Payout data access for admin context
+    
+    brand/
+      ├── auth.model.ts           # Brand authentication & user data access
+      ├── affiliate.model.ts      # Affiliate data access for brand context
+      ├── campaign.model.ts       # Campaign data access for brand context
+      └── payout.model.ts         # Payout data access for brand context
+    
+    affiliate/
+      ├── auth.model.ts           # Affiliate authentication & user data access
+      ├── brand.model.ts          # Brand data access for affiliate context (limited)
+      ├── campaign.model.ts       # Campaign data access for affiliate context
+      └── payout.model.ts         # Payout data access for affiliate context
+```
+
+#### Naming Convention
+
+- **Singular naming**: `admin.model.ts` (not `admins.model.ts`)
+- **Panel context**: Each panel folder provides the context
+- **Auth models**: `auth.model.ts` for authentication-related data access
+- **Entity models**: `brand.model.ts`, `affiliate.model.ts`, etc.
+
+#### Model Examples
+
+**Admin Panel Models** - Full access to all data:
+
+```typescript
+// models/admin/brand.model.ts
+export const AdminBrandModel = {
+  async getAllBrands(): Promise<BrandSummary[]> {
+    // Returns all brands with admin-level details
+    return await db.select({
+      id: brands.id,
+      name: brands.name,
+      email: brands.email,
+      website: brands.website,
+      status: brands.status,
+      createdAt: brands.createdAt,
+      totalAffiliates: sql<number>`count(${affiliates.id})`,
+      totalRevenue: sql<number>`sum(${conversions.saleAmount})`
+    })
+    .from(brands)
+    .leftJoin(affiliates, eq(affiliates.brandId, brands.id))
+    .leftJoin(conversions, eq(conversions.brandId, brands.id))
+    .groupBy(brands.id);
+  },
+
+  async getBrandDetails(id: number): Promise<BrandDetails> {
+    // Returns complete brand information for admin
+    return await db.select().from(brands).where(eq(brands.id, id));
+  },
+
+  async updateBrandStatus(id: number, status: string): Promise<boolean> {
+    // Admin can change any brand's status
+    await db.update(brands).set({ status }).where(eq(brands.id, id));
+    return true;
+  }
+};
+```
+
+**Brand Panel Models** - Brand's own data and affiliate management:
+
+```typescript
+// models/brand/auth.model.ts
+export const BrandAuthModel = {
+  async authenticate(email: string, password: string): Promise<Brand | null> {
+    // Brand authentication with their own data
+    return await db.select().from(brands)
+      .where(and(
+        eq(brands.email, email),
+        eq(brands.status, 'active')
+      ));
+  },
+
+  async getBrandProfile(id: number): Promise<BrandProfile> {
+    // Returns brand's own profile data
+    return await db.select({
+      id: brands.id,
+      name: brands.name,
+      email: brands.email,
+      website: brands.website,
+      settings: brands.settings
+    }).from(brands).where(eq(brands.id, id));
+  }
+};
+
+// models/brand/affiliate.model.ts
+export const BrandAffiliateModel = {
+  async getAffiliates(brandId: number): Promise<AffiliateSummary[]> {
+    // Returns affiliates for this specific brand
+    return await db.select({
+      id: affiliates.id,
+      name: affiliates.name,
+      email: affiliates.email,
+      status: affiliates.status,
+      totalClicks: sql<number>`count(${clicks.id})`,
+      totalConversions: sql<number>`count(${conversions.id})`
+    })
+    .from(affiliates)
+    .leftJoin(clicks, eq(clicks.affiliateId, affiliates.id))
+    .leftJoin(conversions, eq(conversions.affiliateId, affiliates.id))
+    .where(eq(affiliates.brandId, brandId))
+    .groupBy(affiliates.id);
+  },
+
+  async approveAffiliate(affiliateId: number, brandId: number): Promise<boolean> {
+    // Brand can only approve their own affiliates
+    await db.update(affiliates)
+      .set({ status: 'approved' })
+      .where(and(
+        eq(affiliates.id, affiliateId),
+        eq(affiliates.brandId, brandId)
+      ));
+    return true;
+  }
+};
+```
+
+**Affiliate Panel Models** - Limited access to brand data:
+
+```typescript
+// models/affiliate/brand.model.ts
+export const AffiliateBrandModel = {
+  async getBrandPublicInfo(brandId: number): Promise<BrandPublicInfo> {
+    // Returns only public brand information for affiliates
+    return await db.select({
+      id: brands.id,
+      name: brands.name,
+      website: brands.website,
+      logo: brands.logo,
+      description: brands.description
+    }).from(brands).where(eq(brands.id, brandId));
+  },
+
+  async getAvailableCampaigns(brandId: number): Promise<CampaignSummary[]> {
+    // Returns only active campaigns that affiliates can promote
+    return await db.select({
+      id: campaigns.id,
+      title: campaigns.title,
+      description: campaigns.description,
+      commissionRate: commissionRates.value
+    })
+    .from(campaigns)
+    .leftJoin(commissionRates, eq(commissionRates.campaignId, campaigns.id))
+    .where(and(
+      eq(campaigns.brandId, brandId),
+      eq(campaigns.isActive, true)
+    ));
+  },
+
+  async isBrandActive(brandId: number): Promise<boolean> {
+    // Simple check if brand is active
+    const brand = await db.select({ status: brands.status })
+      .from(brands)
+      .where(eq(brands.id, brandId));
+    return brand[0]?.status === 'active';
+  }
+};
+```
+
+#### Security Benefits
+
+**Data Isolation**: Each panel only sees data appropriate for its context
+- **Admin**: Full access to all data across all brands
+- **Brand**: Access to own data + affiliate data for their brand only
+- **Affiliate**: Limited access to brand public data + own affiliate data
+
+**No Data Leakage**: Impossible to accidentally expose sensitive data between panels
+
+**Clear Boundaries**: Each model is scoped to its panel's requirements
+
+#### Business Logic Benefits
+
+**Panel-Specific Views**: Each panel gets exactly the data it needs
+- **Admin Brand Model**: Includes performance metrics, system settings, audit logs
+- **Brand Brand Model**: Includes settings they can modify, their own metrics
+- **Affiliate Brand Model**: Only public information, available campaigns
+
+**No Generic Complexity**: Avoids the complexity of generic models with conditional logic
+
+**Maintainable**: Changes to one panel's data requirements don't affect others
+
+#### Performance Benefits
+
+**Optimized Queries**: Each model is optimized for its specific use case
+- **Admin queries**: Include aggregations and joins for comprehensive views
+- **Brand queries**: Focused on their specific data and relationships
+- **Affiliate queries**: Lightweight, public data only
+
+**No Over-fetching**: Each panel only retrieves the data it actually needs
+
+#### Architecture Decision
+
+**Model Structure**: The application uses panel-scoped models rather than generic models. This approach provides:
+
+- **Security by design** through data isolation
+- **Performance optimization** through panel-specific queries
+- **Maintainability** through clear boundaries
+- **Type safety** through panel-specific interfaces
+- **Business logic clarity** through context-appropriate data access
+
+This model architecture ensures that each panel has exactly the data access it needs while maintaining security boundaries and performance optimization.
+
 ## Directory Structure
 
 ### App Router Structure (Next.js 13+)
