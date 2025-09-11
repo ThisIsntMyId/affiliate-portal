@@ -16,7 +16,7 @@ const loginFormConfig: FormFieldConfig[] = [
   {
     name: "password",
     label: "Password",
-    type: "input",
+    type: "password",
     placeholder: "Enter your password",
     required: true,
     description: "Enter your admin password"
@@ -54,15 +54,13 @@ export function LoginForm() {
   };
 
   return (
-    <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-      <DynamicForm
-        config={loginFormConfig}
-        onSubmit={handleLogin}
-        submitText="Sign In"
-        loadingText="Signing in..."
-        submitButtonAlign="full"
-        showCard={false}
-      />
-    </div>
+    <DynamicForm
+      config={loginFormConfig}
+      onSubmit={handleLogin}
+      submitText="Sign In"
+      loadingText="Signing in..."
+      submitButtonAlign="full"
+      showCard={false}
+    />
   );
 }

@@ -69,7 +69,7 @@ export class DynamicFormSubmissionError extends Error {
 export interface FormFieldConfig {
   name: string
   label: string
-  type: 'input' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'image' | 'combobox' | 'number' | 'email' | 'richtext'
+  type: 'input' | 'password' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'image' | 'combobox' | 'number' | 'email' | 'richtext'
   required?: boolean
   placeholder?: string
   description?: string
@@ -109,6 +109,7 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
     
     switch (field.type) {
       case 'input':
+      case 'password':
       case 'textarea':
       case 'richtext':
         fieldSchema = z.string()
@@ -172,6 +173,8 @@ function renderField(config: FormFieldConfig, form: FormType) {
   switch (config.type) {
     case 'input':
       return <InputField config={config} form={form} />
+    case 'password':
+      return <PasswordField config={config} form={form} />
     case 'number':
       return <NumberField config={config} form={form} />
     case 'email':
@@ -218,6 +221,42 @@ function InputField({ config, form }: { config: FormFieldConfig; form: FormType 
         <Input
           id={config.name}
           type="text"
+          placeholder={config.placeholder}
+          className={cn(
+            config.prefix && "pl-12",
+            config.suffix && "pr-12"
+          )}
+          {...form.register(config.name)}
+        />
+        {config.suffix && (
+          <span className="absolute right-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-2 rounded-r-md min-w-[2.5rem]">
+            {config.suffix}
+          </span>
+        )}
+      </div>
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
+      )}
+      {form.formState.errors[config.name] && (
+        <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
+      )}
+    </div>
+  )
+}
+
+function PasswordField({ config, form }: { config: FormFieldConfig; form: FormType }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={config.name}>{config.label}</Label>
+      <div className="relative">
+        {config.prefix && (
+          <span className="absolute left-0 top-0 bottom-0 flex items-center justify-center text-sm text-muted-foreground bg-muted border border-input px-2 rounded-l-md min-w-[2.5rem]">
+            {config.prefix}
+          </span>
+        )}
+        <Input
+          id={config.name}
+          type="password"
           placeholder={config.placeholder}
           className={cn(
             config.prefix && "pl-12",
