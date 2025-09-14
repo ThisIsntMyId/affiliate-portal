@@ -96,7 +96,7 @@ export default function BrandTable({ data }: { data: PaginatedBrandsResponse }) 
 
     const search = searchParams.get('search') || '';
     const sort = searchParams.get('sort') || '';
-    // const status = searchParams.get('status') || '';
+    const status = searchParams.get('status') || '';
 
     const sortOptions = BrandSortOptionsLabels;
 
@@ -110,10 +110,25 @@ export default function BrandTable({ data }: { data: PaginatedBrandsResponse }) 
                 else currentParams.delete('search');
                 currentParams.set('page', '1'); // Reset to first page on new search
                 break;
+            
+            // NEW: Handle single, inline filter changes
             case 'filter':
-                currentParams.set(action.data.key as string, action.data.value as string);
-                currentParams.set('page', '1'); // Reset to first page on filter change
+                const { key, value } = action.data as { key: string; value: string };
+                if (value && value !== 'all') { // Use 'all' to clear the filter
+                    currentParams.set(key, value);
+                } else {
+                    currentParams.delete(key);
+                }
+                currentParams.set('page', '1');
                 break;
+
+            // NEW: Handle batch updates from the modal
+            case 'filterBatch':
+                // You can implement logic to handle batch updates here if needed
+                // For now, this case can be left empty or point to the single filter logic
+                // if your modal only supports one filter at a time.
+                break;
+
             case 'sort':
                 if(action.data) currentParams.set('sort', action.data as string);
                 else currentParams.delete('sort');
@@ -148,12 +163,30 @@ export default function BrandTable({ data }: { data: PaginatedBrandsResponse }) 
                     searchable={true}
                     filterable={true}
                     sortable={true}
+                    // Pass current values to sync UI
+                    filterValues={{ status }} // Pass the current status
+                    // Define the inline quick filter
+                    quickFilters={[
+                        {
+                            key: 'status',
+                            label: 'Status',
+                            type: 'select',
+                            options: [
+                                { label: 'All Statuses', value: 'all' }, // Option to clear filter
+                                { label: 'Active', value: BrandStatus.ACTIVE },
+                                { label: 'Inactive', value: BrandStatus.INACTIVE },
+                                { label: 'Suspended', value: BrandStatus.SUSPENDED }
+                            ]
+                        }
+                    ]}
+                    // Advanced filters for the modal
                     filters={[
                         {
                             key: 'status',
                             label: 'Status',
                             type: 'select',
                             options: [
+                                { label: 'All Statuses', value: 'all' },
                                 { label: 'Active', value: BrandStatus.ACTIVE },
                                 { label: 'Inactive', value: BrandStatus.INACTIVE },
                                 { label: 'Suspended', value: BrandStatus.SUSPENDED }

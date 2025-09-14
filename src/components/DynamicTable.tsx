@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Search, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react'
 import { get } from 'lodash'
 import { cn } from '@/lib/utils'
 
@@ -73,7 +73,8 @@ export interface EmptyStateConfig {
 }
 
 export type TableAction =
-  | { type: 'filter'; data: Record<string, unknown> }
+  | { type: 'filter'; data: { key: string, value: string } }
+  | { type: 'filterBatch'; data: Record<string, unknown> }
   | { type: 'sort'; data: string }
   | { type: 'page'; data: number }
   | { type: 'search'; data: string }
@@ -87,7 +88,9 @@ export interface DynamicTableProps {
   columns: ColumnConfig[]
 
   searchQuery?: string
-  filters?: FilterConfig[]
+  filters?: FilterConfig[] // For modal
+  quickFilters?: FilterConfig[] // For inline controls
+  filterValues?: Record<string, string> // For showing selected values
   sortOptions?: Record<string, string> // { latest: "Latest", oldest: "Oldest" }
   sortBy?: string
 
@@ -415,6 +418,8 @@ export function DynamicTable({
   pageLimits,
   columns,
   filters,
+  quickFilters,
+  filterValues,
   sortBy,
   sortOptions,
   searchQuery,
@@ -450,6 +455,15 @@ export function DynamicTable({
     onAction?.({ type: 'page', data: page })
   }, [onAction])
 
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    onAction?.({ type: 'filter', data: { key, value } });
+  }, [onAction]);
+
+  const handleClearSearch = useCallback(() => {
+    setInternalSearchQuery('');
+    onAction?.({ type: 'search', data: '' });
+  }, [onAction]);
+
   const handleFilterApply = useCallback((filters: Record<string, unknown>) => {
     setShowFilterModal(false)
     setIsFiltering(true)
@@ -459,7 +473,7 @@ export function DynamicTable({
         value !== 'all' && value !== '' && value !== null && value !== undefined
       )
     )
-    onAction?.({ type: 'filter', data: cleanFilters })
+    onAction?.({ type: 'filterBatch', data: cleanFilters })
     // Reset loading state after a delay to allow parent to handle
     setTimeout(() => setIsFiltering(false), 100)
   }, [onAction])
@@ -526,50 +540,89 @@ export function DynamicTable({
       <div>
         {/* Search and Controls Bar */}
         {(searchable || filterable || sortable) && (
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-2 mb-6 flex-wrap items-center">
+            {/* 1. MODIFIED: Search Input */}
             {searchable && (
-              <div className="relative flex-1">
+              <div className="relative w-full sm:w-auto sm:max-w-xs">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={"Search..."}
                   value={internalSearchQuery}
                   onChange={(e) => setInternalSearchQuery(e.target.value)}
-                  className="pl-10 cursor-text"
+                  className="pl-10 cursor-text pr-8"
                 />
+                {internalSearchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={handleClearSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
 
-            <div className="flex gap-2">
-              {filterable && filters && filters.length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilterModal(true)}
-                  className="flex items-center gap-2 cursor-pointer"
-                  disabled={isFiltering}
-                >
-                  {isFiltering ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Filter className="h-4 w-4" />
-                  )}
-                  {isFiltering ? 'Filtering...' : 'Filters'}
-                </Button>
-              )}
+            {/* 2. NEW: Quick Filters */}
+            {quickFilters?.map(filter => {
+              // For now, we only implement the 'select' type inline
+              if (filter.type === 'select') {
+                return (
+                  <Select
+                    key={filter.key}
+                    value={filterValues?.[filter.key] || ''}
+                    onValueChange={(value) => handleFilterChange(filter.key, value)}
+                  >
+                    <SelectTrigger className="w-full sm:w-40 cursor-pointer">
+                      <SelectValue placeholder={filter.label} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filter.options?.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )
+              }
+              return null;
+            })}
+            
+            {/* 3. MODIFIED: Group remaining controls to the right */}
+            <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
+                {/* This button is now for "Advanced" filters from the modal */}
+                {filterable && filters && filters.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilterModal(true)}
+                    className="flex items-center gap-2 cursor-pointer"
+                    disabled={isFiltering}
+                  >
+                    {isFiltering ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Filter className="h-4 w-4" />
+                    )}
+                    {isFiltering ? 'Filtering...' : 'Filters'}
+                  </Button>
+                )}
 
-              {sortable && sortOptions && Object.keys(sortOptions).length > 0 && (
-                <Select value={sortBy} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-40 cursor-pointer">
-                    <SelectValue placeholder={"Sort by..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(sortOptions).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                {sortable && sortOptions && Object.keys(sortOptions).length > 0 && (
+                  <Select value={sortBy} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-full sm:w-40 cursor-pointer">
+                      <SelectValue placeholder={"Sort by..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(sortOptions).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
             </div>
           </div>
         )}
