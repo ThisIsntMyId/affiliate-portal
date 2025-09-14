@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Check, ChevronsUpDown, Calendar as CalendarIcon, CloudUpload, Paperclip, Loader2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Calendar as CalendarIcon, CloudUpload, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // UI Components
@@ -22,7 +22,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { FileUploader, FileInput, FileUploaderContent, FileUploaderItem } from '@/components/ui/file-upload'
 import { RichTextEditor } from '@/components/RichTextEditor'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -37,39 +36,52 @@ export class DynamicFormSubmissionError extends Error {
   }
 }
 
-// Types
-
 /**
- * Rich Text Editor Configuration
+ * Simple File Upload Configuration
  * 
  * Example usage in FormFieldConfig:
  * 
- * // Minimal rich text editor
+ * // Single image upload with preview
  * {
- *   name: "description",
- *   label: "Description",
- *   type: "richtext",
- *   richtextConfig: {
- *     variant: "minimal",
- *     placeholder: "Enter description..."
+ *   name: "avatar",
+ *   label: "Profile Picture",
+ *   type: "file",
+ *   fileConfig: {
+ *     maxFiles: 1,
+ *     multiple: false,
+ *     image: true,          // ← Enables image preview
+ *     boxSizeWidth: 150,
+ *     boxSizeHeight: 150,
+ *     accept: "image/*",
+ *     maxSize: 5 * 1024 * 1024
  *   }
  * }
  * 
- * // Full rich text editor with advanced features
+ * // Multiple file upload with grid layout (no image preview)
  * {
- *   name: "content",
- *   label: "Content",
- *   type: "richtext",
- *   richtextConfig: {
- *     variant: "full",
- *     placeholder: "Enter detailed content..."
+ *   name: "documents",
+ *   label: "Supporting Documents",
+ *   type: "file",
+ *   fileConfig: {
+ *     maxFiles: 5,
+ *     multiple: true,
+ *     image: false,         // ← Shows file initials + name
+ *     boxSizeWidth: 100,
+ *     boxSizeHeight: 100,
+ *     gridColumns: 5,
+ *     accept: ".pdf,.doc,.docx",
+ *     maxSize: 10 * 1024 * 1024
  *   }
  * }
+ * 
+ * NOTE: Always use type: "file". Image preview is controlled by fileConfig.image
  */
+
+// Types
 export interface FormFieldConfig {
   name: string
   label: string
-  type: 'input' | 'password' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'image' | 'combobox' | 'number' | 'email' | 'richtext'
+  type: 'input' | 'password' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'combobox' | 'number' | 'email' | 'richtext'
   required?: boolean
   placeholder?: string
   description?: string
@@ -77,7 +89,12 @@ export interface FormFieldConfig {
   prefix?: string
   suffix?: string
   fileConfig?: {
+    maxFiles?: number
     multiple?: boolean
+    image?: boolean
+    boxSizeWidth?: number
+    boxSizeHeight?: number
+    gridColumns?: number
     accept?: string
     maxSize?: number
   }
@@ -139,8 +156,11 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
         fieldSchema = z.string()
         break
       case 'file':
-      case 'image':
-        fieldSchema = field.fileConfig?.multiple ? z.array(z.instanceof(File)) : z.instanceof(File)
+        if (field.fileConfig?.multiple) {
+          fieldSchema = z.array(z.union([z.instanceof(File), z.string()]))
+        } else {
+          fieldSchema = z.union([z.instanceof(File), z.string()]).nullable()
+        }
         break
       default:
         fieldSchema = z.string()
@@ -195,8 +215,6 @@ function renderField(config: FormFieldConfig, form: FormType) {
       return <RadioField config={config} form={form} />
     case 'file':
       return <FileField config={config} form={form} />
-    case 'image':
-      return <ImageField config={config} form={form} />
     case 'combobox':
       return <ComboboxField config={config} form={form} />
     case 'richtext':
@@ -551,153 +569,274 @@ function RadioField({ config, form }: { config: FormFieldConfig; form: FormType 
   )
 }
 
-function FileField({ config, form }: { config: FormFieldConfig; form: FormType }) {
-  const [files, setFiles] = useState<File[] | null>(null)
-  
-  const dropZoneConfig = {
-    maxFiles: config.fileConfig?.multiple ? 5 : 1,
-    maxSize: config.fileConfig?.maxSize || 1024 * 1024 * 4,
-    multiple: config.fileConfig?.multiple || false,
-    accept: config.fileConfig?.accept ? { [config.fileConfig.accept]: [] } : undefined,
-  }
-  
-  // Update form value when files change
-  React.useEffect(() => {
-    if (config.fileConfig?.multiple) {
-      form.setValue(config.name, files)
-    } else {
-      form.setValue(config.name, files?.[0] || null)
-    }
-  }, [files, config.name, config.fileConfig?.multiple, form])
-  
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={config.name}>{config.label}</Label>
-      <FileUploader
-        value={files}
-        onValueChange={setFiles}
-        dropzoneOptions={dropZoneConfig}
-        className="relative bg-background rounded-lg p-2"
-      >
-        <FileInput className="outline-dashed outline-1 outline-slate-500">
-          <div className="flex items-center justify-center flex-col p-8 w-full">
-            <CloudUpload className="text-gray-500 w-10 h-10" />
-            <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-semibold">Click to upload</span>
-              &nbsp; or drag and drop
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {config.fileConfig?.accept || "Any file type"}
-            </p>
-          </div>
-        </FileInput>
-        <FileUploaderContent>
-          {files &&
-            files.length > 0 &&
-            files.map((file, i) => (
-              <FileUploaderItem key={i} index={i}>
-                <Paperclip className="h-4 w-4 stroke-current" />
-                <span>{file.name}</span>
-              </FileUploaderItem>
-            ))}
-        </FileUploaderContent>
-      </FileUploader>
-      {config.description && (
-        <p className="text-sm text-muted-foreground">{config.description}</p>
-      )}
-      {form.formState.errors[config.name] && (
-        <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
-      )}
-    </div>
-  )
+// Helper function to get file extension
+function getFileExtension(filename: string): string {
+  return filename.split('.').pop()?.toLowerCase() || ''
 }
 
-function ImageField({ config, form }: { config: FormFieldConfig; form: FormType }) {
-  const [files, setFiles] = useState<File[] | null>(null)
-  const [previews, setPreviews] = useState<string[]>([])
-  
-  const dropZoneConfig = {
-    maxFiles: config.fileConfig?.multiple ? 5 : 1,
-    maxSize: config.fileConfig?.maxSize || 1024 * 1024 * 4,
-    multiple: config.fileConfig?.multiple || false,
-    accept: config.fileConfig?.accept ? { [config.fileConfig.accept]: [] } : { 'image/*': [] },
+// Helper function to check if file is image by extension
+function isImageByExtension(filename: string): boolean {
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico']
+  return imageExtensions.includes(getFileExtension(filename))
+}
+
+// Helper function to get initials from filename
+function getFileInitials(filename: string): string {
+  const name = filename.replace(/\.[^/.]+$/, '') // Remove extension
+  if (name.length >= 2) {
+    return name.substring(0, 2).toUpperCase()
   }
+  return name.toUpperCase()
+}
+
+// Helper function to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+function FileField({ config, form }: { config: FormFieldConfig; form: FormType }) {
+  const [files, setFiles] = useState<(File | string)[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   
-  // Generate previews when files change
+  const isMultiple = config.fileConfig?.multiple || false
+  const maxFiles = config.fileConfig?.maxFiles || 1
+  const boxWidth = config.fileConfig?.boxSizeWidth || 120
+  const boxHeight = config.fileConfig?.boxSizeHeight || 120
+  const gridColumns = config.fileConfig?.gridColumns || 5
+  const isImageType = config.fileConfig?.image || false
+  const accept = config.fileConfig?.accept || (isImageType ? 'image/*' : '*/*')
+  const maxSize = config.fileConfig?.maxSize || 1024 * 1024 * 4
+  
+  // Initialize files from form default values
   React.useEffect(() => {
-    if (files && files.length > 0) {
-      const newPreviews: string[] = []
-      files.forEach(file => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          newPreviews.push(e.target?.result as string)
-          if (newPreviews.length === files.length) {
-            setPreviews([...newPreviews])
-          }
-        }
-        reader.readAsDataURL(file)
-      })
-    } else {
-      setPreviews([])
+    const formValue = form.getValues(config.name)
+    if (formValue) {
+      if (isMultiple && Array.isArray(formValue)) {
+        setFiles(formValue)
+      } else if (!isMultiple && (typeof formValue === 'string' || formValue instanceof File)) {
+        setFiles([formValue])
+      }
     }
-  }, [files])
+  }, [config.name, form, isMultiple])
+  
+  // Generate previews for uploaded files
+  React.useEffect(() => {
+    const newPreviews: string[] = []
+    
+    files.forEach((file, index) => {
+      if (file instanceof File) {
+        // For uploaded files, generate preview
+        if (isImageType || isImageByExtension(file.name)) {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            newPreviews[index] = e.target?.result as string
+            if (newPreviews.length === files.length) {
+              setPreviews([...newPreviews])
+            }
+          }
+          reader.readAsDataURL(file)
+        } else {
+          newPreviews[index] = ''
+        }
+      } else if (typeof file === 'string') {
+        // For existing file URLs
+        if (isImageType || isImageByExtension(file)) {
+          newPreviews[index] = file
+        } else {
+          newPreviews[index] = ''
+        }
+      }
+    })
+    
+    if (newPreviews.length === files.length) {
+      setPreviews([...newPreviews])
+    }
+  }, [files, isImageType])
   
   // Update form value when files change
   React.useEffect(() => {
-    if (config.fileConfig?.multiple) {
+    if (isMultiple) {
       form.setValue(config.name, files)
     } else {
-      form.setValue(config.name, files?.[0] || null)
+      form.setValue(config.name, files[0] || null)
     }
-  }, [files, config.name, config.fileConfig?.multiple, form])
+  }, [files, config.name, isMultiple, form])
+  
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    
+    // Validate file size
+    const validFiles = selectedFiles.filter(file => {
+      if (file.size > maxSize) {
+        toast.error(`File ${file.name} is too large. Maximum size is ${formatFileSize(maxSize)}.`)
+        return false
+      }
+      return true
+    })
+    
+    if (validFiles.length === 0) return
+    
+    if (isMultiple) {
+      // Add files to existing array, respecting maxFiles limit
+      const currentFileCount = files.length
+      const remainingSlots = maxFiles - currentFileCount
+      const filesToAdd = validFiles.slice(0, remainingSlots)
+      
+      if (filesToAdd.length < validFiles.length) {
+        toast.error(`Maximum ${maxFiles} files allowed.`)
+      }
+      
+      setFiles([...files, ...filesToAdd])
+    } else {
+      // Replace with first file
+      setFiles([validFiles[0]])
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+  
+  const handleFileRemove = (index: number) => {
+    const newFiles = files.filter((_, i) => i !== index)
+    setFiles(newFiles)
+  }
+  
+  const handleBoxClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+  
+  const renderFilePreview = (file: File | string, index: number) => {
+    const filename = typeof file === 'string' ? file.split('/').pop() || file : file.name
+    const preview = previews[index]
+    const isImage = isImageType || (preview && (typeof file === 'string' || isImageByExtension(filename)))
+    
+    return (
+      <div 
+        key={index}
+        className="relative group"
+        style={{ width: boxWidth, height: boxHeight }}
+      >
+        <div className="w-full h-full border border-input bg-background rounded-md overflow-hidden flex items-center justify-center">
+          {isImage && preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img 
+              src={preview} 
+              alt={filename}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center p-2 text-center">
+              <div className="text-lg font-bold text-muted-foreground mb-1">
+                {getFileInitials(filename)}
+              </div>
+              <div className="text-xs text-muted-foreground truncate w-full px-1">
+                {filename}
+              </div>
+              {typeof file !== 'string' && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {formatFileSize(file.size)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Remove button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleFileRemove(index)
+          }}
+          className="absolute -top-2 -right-2 w-6 h-6 bg-background/80 hover:bg-background border border-input rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    )
+  }
+  
+  const renderPlaceholderBox = () => {
+    if (!isMultiple && files.length > 0) return null
+    if (isMultiple && files.length >= maxFiles) return null
+    
+    return (
+      <div 
+        onClick={handleBoxClick}
+        className="border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/50 rounded-md cursor-pointer transition-colors flex flex-col items-center justify-center group"
+        style={{ width: boxWidth, height: boxHeight }}
+      >
+        <CloudUpload className="w-8 h-8 text-muted-foreground/50 group-hover:text-muted-foreground mb-2" />
+        <p className="text-xs text-muted-foreground/70 group-hover:text-muted-foreground text-center px-2">
+          Click to upload
+        </p>
+      </div>
+    )
+  }
+  
+  const generateFileHints = () => {
+    const hints: string[] = []
+    
+    if (accept && accept !== '*/*') {
+      hints.push(`Supported: ${accept}`)
+    }
+    
+    if (isMultiple) {
+      hints.push(`Max: ${maxFiles} files`)
+    }
+    
+    hints.push(`Size: ${formatFileSize(maxSize)}`)
+    
+    return hints.join(' • ')
+  }
   
   return (
     <div className="space-y-2">
       <Label htmlFor={config.name}>{config.label}</Label>
-      <FileUploader
-        value={files}
-        onValueChange={setFiles}
-        dropzoneOptions={dropZoneConfig}
-        className="relative bg-background rounded-lg p-2"
+      
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={accept}
+        multiple={isMultiple}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      
+      {/* File grid */}
+      <div 
+        className="flex flex-wrap gap-3"
+        style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}
       >
-        <FileInput className="outline-dashed outline-1 outline-slate-500">
-          <div className="flex items-center justify-center flex-col p-8 w-full">
-            <CloudUpload className="text-gray-500 w-10 h-10" />
-            <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-semibold">Click to upload</span>
-              &nbsp; or drag and drop
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {config.fileConfig?.accept || "Images only (JPG, PNG, GIF, etc.)"}
-            </p>
-          </div>
-        </FileInput>
-        <FileUploaderContent>
-          {files &&
-            files.length > 0 &&
-            files.map((file, i) => (
-              <div key={i} className="flex items-center space-x-2 p-2 border rounded">
-                {previews[i] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img 
-                    src={previews[i]} 
-                    alt={file.name} 
-                    className="w-12 h-12 object-cover rounded"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
-            ))}
-        </FileUploaderContent>
-      </FileUploader>
+        {files.map((file, index) => renderFilePreview(file, index))}
+        {renderPlaceholderBox()}
+      </div>
+      
+      {/* File hints */}
+      {generateFileHints() && (
+        <p className="text-xs text-muted-foreground">
+          {generateFileHints()}
+        </p>
+      )}
+      
+      {/* Description */}
       {config.description && (
         <p className="text-sm text-muted-foreground">{config.description}</p>
       )}
+      
+      {/* Error message */}
       {form.formState.errors[config.name] && (
         <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
       )}
@@ -819,8 +958,19 @@ function FormSkeleton({ config }: { config: FormFieldConfig[] }) {
                 </div>
               ))}
             </div>
-          ) : field.type === 'file' || field.type === 'image' ? (
-            <Skeleton className="h-24 w-full border-2 border-dashed border-gray-300 rounded-lg" />
+          ) : field.type === 'file' ? (
+            <div className="flex flex-wrap gap-3">
+              {Array.from({ length: field.fileConfig?.maxFiles || 1 }).map((_, index) => (
+                <Skeleton 
+                  key={index} 
+                  className="border border-input rounded-md" 
+                  style={{ 
+                    width: field.fileConfig?.boxSizeWidth || 120, 
+                    height: field.fileConfig?.boxSizeHeight || 120 
+                  }} 
+                />
+              ))}
+            </div>
           ) : field.type === 'date' ? (
             <Skeleton className="h-10 w-48" />
           ) : field.type === 'select' || field.type === 'multiselect' || field.type === 'combobox' ? (
@@ -865,7 +1015,6 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
       await onSubmit?.(values as Record<string, unknown>)
       toast.success('Form submitted successfully!')
     } catch (error) {
-      console.log("🚀 ~ handleSubmit ~ error:", error)
       if (error instanceof DynamicFormSubmissionError) {
         if (typeof error.field === 'string') {
           // Single field error

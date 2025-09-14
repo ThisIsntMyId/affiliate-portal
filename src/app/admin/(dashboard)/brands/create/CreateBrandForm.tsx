@@ -16,6 +16,18 @@ const formConfig: FormFieldConfig[] = [
     description: 'The display name for this brand'
   },
   {
+    name: "logo",
+    label: "Brand Logo",
+    type: "file",
+    required: true,
+    description: 'Upload the brand logo here',
+    fileConfig: {
+      image: true,
+      maxFiles: 1,
+      multiple: false
+    }
+  },
+  {
     name: 'email',
     label: 'Email Address',
     type: 'email',
@@ -68,6 +80,7 @@ const formConfig: FormFieldConfig[] = [
 
 export function CreateBrandForm() {
   const handleSubmit = async (values: Record<string, unknown>) => {
+    console.log("🚀 ~ handleSubmit ~ values:", values)
     const result = await createBrand(values);
     
     if (result.success) {

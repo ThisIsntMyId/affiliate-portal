@@ -191,18 +191,6 @@ const demoConfig: FormFieldConfig[] = [
     }
   },
   {
-    name: "gallery",
-    label: "Photo Gallery",
-    type: "image",
-    required: false,
-    description: "Upload multiple images for your gallery (JPG, PNG, GIF up to 10MB each)",
-    fileConfig: {
-      multiple: true,
-      accept: "image/*",
-      maxSize: 10 * 1024 * 1024 // 10MB
-    }
-  },
-  {
     name: "documents",
     label: "Supporting Documents",
     type: "file",
