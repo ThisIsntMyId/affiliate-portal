@@ -45,9 +45,11 @@ export async function login(data: unknown) {
       sameSite: 'lax',
       maxAge: config.session.cookieDuration,
     });
+
+    console.log(getRoute('admin.dashboard'))
     
     // Redirect to admin dashboard
-    redirect(getRoute('admin.dashboard'));
+    return redirect(getRoute('admin.dashboard'));
     
   } catch (error) {
     if (error instanceof z.ZodError) {

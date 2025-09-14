@@ -15,6 +15,13 @@
       "when": 1757502355560,
       "tag": "0001_foamy_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757594876269,
+      "tag": "0002_lucky_greymalkin",
+      "breakpoints": true
     }
   ]
 }
