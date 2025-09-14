@@ -23,7 +23,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { MultiSelect } from '@/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { FileUploader, FileInput, FileUploaderContent, FileUploaderItem } from '@/components/ui/file-upload'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { RichTextEditor } from '@/components/RichTextEditor'
 
 // Custom Error Class
@@ -95,9 +94,6 @@ export interface DynamicFormProps {
   submitText?: string
   loadingText?: string
   submitButtonAlign?: 'full' | 'left' | 'right'
-  title?: string
-  description?: string
-  showCard?: boolean
 }
 
 // Schema Generation
@@ -789,7 +785,7 @@ function RichTextField({ config, form }: { config: FormFieldConfig; form: FormTy
 }
 
 // Main Component
-export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', title, description, showCard = true }: DynamicFormProps) {
+export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full' }: DynamicFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -810,6 +806,7 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
       await onSubmit(values as Record<string, unknown>)
       toast.success('Form submitted successfully!')
     } catch (error) {
+      console.log("🚀 ~ handleSubmit ~ error:", error)
       if (error instanceof DynamicFormSubmissionError) {
         if (typeof error.field === 'string') {
           // Single field error
@@ -874,21 +871,5 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
     </form>
   )
 
-  if (!showCard) {
-    return formContent
-  }
-
-  return (
-    <Card className="w-full">
-      {(title || description) && (
-        <CardHeader>
-          {title && <CardTitle>{title}</CardTitle>}
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
-      )}
-      <CardContent>
-        {formContent}
-      </CardContent>
-    </Card>
-  )
+  return (formContent);
 }

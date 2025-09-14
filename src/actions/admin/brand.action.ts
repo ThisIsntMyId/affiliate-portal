@@ -2,8 +2,10 @@
 
 import { BrandModel } from '@/models/admin/brand.model';
 import { BrandStatus } from '@/constants/brand';
-import { revalidatePath, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { cryptoService } from '@/services/crypto.service';
+import { revalidatePath } from 'next/cache';
 
 // Validation schemas defined locally in this action file
 // This keeps validation logic close to where it's used and avoids spreading schemas across the app
@@ -39,14 +41,6 @@ const brandFiltersSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc')
 });
 
-// Helper function to hash password (you'll need to implement this based on your auth system)
-async function hashPassword(password: string): Promise<string> {
-  // This should use your existing password hashing logic
-  // For now, returning a placeholder - replace with actual implementation
-  const bcrypt = await import('bcryptjs');
-  return await bcrypt.hash(password, 12);
-}
-
 /**
  * Create a new brand
  */
@@ -66,7 +60,7 @@ export async function createBrand(data: unknown) {
     }
 
     // Hash password
-    const passwordHash = await hashPassword(validated.password);
+    const passwordHash = await cryptoService.hash(validated.password);
     
     // Create brand
     const brand = await BrandModel.createBrand({
@@ -99,11 +93,19 @@ export async function createBrand(data: unknown) {
 export async function updateBrand(id: number, data: unknown) {
   try {
     const validated = updateBrandSchema.parse(data);
+
+    const brand = await BrandModel.getBrandById(id);
+    if (!brand) {
+      return {
+        success: false,
+        error: 'Brand not found'
+      }
+    }
     
     // Check if email is being changed and if it already exists
     if (validated.email) {
-      const exists = await BrandModel.brandExistsByEmail(validated.email, id);
-      if (exists) {
+      const exists = await BrandModel.brandExistsByEmail(validated.email);
+      if (exists && exists.id !== id) {
         return {
           success: false,
           errors: {
@@ -122,9 +124,7 @@ export async function updateBrand(id: number, data: unknown) {
     if (!updatedBrand) {
       return {
         success: false,
-        errors: {
-          general: ['Brand not found']
-        }
+        error: 'Brand update failed'
       };
     }
 

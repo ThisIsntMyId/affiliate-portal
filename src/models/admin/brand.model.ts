@@ -107,6 +107,18 @@ export const BrandModel = {
   },
 
   /**
+   * Get brand by ID with full details
+   */
+  async brandExistsByEmail(email: string) {
+    const result = await db
+      .select()
+      .from(brands)
+      .where(eq(brands.email, email)); // .groupBy() was removed
+
+    return result[0] || null;
+  },
+
+  /**
    * Create a new brand
    */
   async createBrand(data: CreateBrandData) {
