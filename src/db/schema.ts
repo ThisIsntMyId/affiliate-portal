@@ -41,7 +41,7 @@ export const admins = pgTable('admins', {
 
 export const brands = pgTable('brands', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).notNull().unique(),
+    code: varchar('code', { length: 50 }).unique(),
     
     name: varchar('name', { length: 255 }).notNull(),
     email: varchar('email', { length: 255 }).notNull().unique(),

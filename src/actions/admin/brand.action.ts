@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { cryptoService } from '@/services/crypto.service';
 import { revalidatePath } from 'next/cache';
+import { base62CodeService } from '@/services/base62-code.service';
 
 // Validation schemas defined locally in this action file
 // This keeps validation logic close to where it's used and avoids spreading schemas across the app
@@ -28,17 +29,12 @@ const updateBrandSchema = z.object({
   timezone: z.string().optional()
 });
 
-const updateStatusSchema = z.object({
-  status: z.enum([BrandStatus.ACTIVE, BrandStatus.INACTIVE, BrandStatus.SUSPENDED])
-});
-
 const brandFiltersSchema = z.object({
   status: z.enum([BrandStatus.ACTIVE, BrandStatus.INACTIVE, BrandStatus.SUSPENDED]).optional(),
   search: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
-  sortBy: z.enum(['name', 'email', 'createdAt', 'status']).default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc')
+  sort: z.enum(['latest', 'oldest', 'name-asc', 'name-desc']).default('latest'),
 });
 
 /**
@@ -72,6 +68,13 @@ export async function createBrand(data: unknown) {
       status: validated.status || BrandStatus.ACTIVE,
       timezone: validated.timezone || 'UTC'
     });
+
+    
+    // Generate code using the base62 service
+    const code = base62CodeService.generate(brand.id, brand.createdAt);
+    
+    // Update brand with generated code
+    await BrandModel.updateBrand(brand.id, {code});
 
     revalidatePath('/admin/brands');
     redirect(`/admin/brands/${brand.id}`);
@@ -144,68 +147,6 @@ export async function updateBrand(id: number, data: unknown) {
 }
 
 /**
- * Update brand status
- */
-export async function updateBrandStatus(id: number, data: unknown) {
-  try {
-    const validated = updateStatusSchema.parse(data);
-    
-    const success = await BrandModel.updateBrandStatus(id, validated.status);
-    
-    if (!success) {
-      return {
-        success: false,
-        errors: {
-          general: ['Brand not found']
-        }
-      };
-    }
-
-    revalidatePath('/admin/brands');
-    revalidatePath(`/admin/brands/${id}`);
-    return { success: true };
-    
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: error.flatten().fieldErrors
-      };
-    }
-    throw error;
-  }
-}
-
-/**
- * Delete brand by ID
- */
-export async function deleteBrand(id: number) {
-  try {
-    const success = await BrandModel.deleteBrand(id);
-    
-    if (!success) {
-      return {
-        success: false,
-        errors: {
-          general: ['Brand not found']
-        }
-      };
-    }
-
-    revalidatePath('/admin/brands');
-    return { success: true };
-    
-  } catch (error) {
-    return {
-      success: false,
-      errors: {
-        general: ['Failed to delete brand']
-      }
-    };
-  }
-}
-
-/**
  * Get paginated brands with filters
  */
 export async function getPaginatedBrands(filters: unknown) {
@@ -223,69 +164,5 @@ export async function getPaginatedBrands(filters: unknown) {
       };
     }
     throw error;
-  }
-}
-
-/**
- * Get brand by ID
- */
-export async function getBrandById(id: number) {
-  try {
-    const brand = await BrandModel.getBrandById(id);
-    
-    if (!brand) {
-      return {
-        success: false,
-        errors: {
-          general: ['Brand not found']
-        }
-      };
-    }
-
-    return { success: true, data: brand };
-    
-  } catch (error) {
-    return {
-      success: false,
-      errors: {
-        general: ['Failed to fetch brand']
-      }
-    };
-  }
-}
-
-/**
- * Get brand statistics
- */
-export async function getBrandStats() {
-  try {
-    const stats = await BrandModel.getBrandStats();
-    return { success: true, data: stats };
-    
-  } catch (error) {
-    return {
-      success: false,
-      errors: {
-        general: ['Failed to fetch brand statistics']
-      }
-    };
-  }
-}
-
-/**
- * Get brands by status
- */
-export async function getBrandsByStatus(status: string) {
-  try {
-    const brands = await BrandModel.getBrandsByStatus(status);
-    return { success: true, data: brands };
-    
-  } catch (error) {
-    return {
-      success: false,
-      errors: {
-        general: ['Failed to fetch brands']
-      }
-    };
   }
 }

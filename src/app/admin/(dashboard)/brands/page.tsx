@@ -40,7 +40,7 @@ export default async function AdminBrands({
           <p className="text-gray-600 mt-1">Manage all brands in the system</p>
         </div>
         <Link href={getRoute('admin.brands.create')}>
-          <Button>
+          <Button className='cursor-pointer'>
             <Plus className="h-4 w-4 mr-2" />
             Create Brand
           </Button>

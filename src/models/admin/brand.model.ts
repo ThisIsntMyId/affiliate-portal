@@ -17,8 +17,8 @@ export const BrandSortOptions: Record<string, {column: AnyColumn, order: 'asc' |
 }
 
 export type BrandFilters = {
-  status: string;
-  search: string;
+  status?: string;
+  search?: string;
   page: number;
   limit: number;
   sort: keyof typeof BrandSortOptions;
