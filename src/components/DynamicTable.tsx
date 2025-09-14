@@ -202,15 +202,24 @@ function FilterModal({
   onClose,
   filters,
   onApply,
-  isFiltering
+  isFiltering,
+  initialValues
 }: {
   open: boolean
   onClose: () => void
   filters?: FilterConfig[]
   onApply: (filters: Record<string, unknown>) => void
   isFiltering: boolean
+  initialValues?: Record<string, string>
 }) {
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({})
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(initialValues || {})
+
+  // Update filter values when initial values change
+  useEffect(() => {
+    if (initialValues) {
+      setFilterValues(initialValues)
+    }
+  }, [initialValues])
 
   const handleApply = () => {
     onApply(filterValues)
@@ -218,6 +227,9 @@ function FilterModal({
 
   const handleReset = () => {
     setFilterValues({})
+    // Automatically apply reset and close modal
+    onApply({})
+    onClose()
   }
 
   if (!filters || filters.length === 0) return null
@@ -482,6 +494,14 @@ export function DynamicTable({
     onAction?.({ type: 'perPage', data: perPage })
   }, [onAction])
 
+  // Count active filters
+  const getActiveFilterCount = useCallback(() => {
+    if (!filterValues) return 0
+    return Object.values(filterValues).filter(value => 
+      value && value !== '' && value !== 'all'
+    ).length
+  }, [filterValues])
+
   // Render table
   const renderTable = () => {
     if (loading) return <TableSkeleton columns={columns} />
@@ -597,7 +617,7 @@ export function DynamicTable({
                   <Button
                     variant="outline"
                     onClick={() => setShowFilterModal(true)}
-                    className="flex items-center gap-2 cursor-pointer"
+                    className="flex items-center gap-2 cursor-pointer relative"
                     disabled={isFiltering}
                   >
                     {isFiltering ? (
@@ -606,6 +626,11 @@ export function DynamicTable({
                       <Filter className="h-4 w-4" />
                     )}
                     {isFiltering ? 'Filtering...' : 'Filters'}
+                    {getActiveFilterCount() > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {getActiveFilterCount()}
+                      </span>
+                    )}
                   </Button>
                 )}
 
@@ -649,6 +674,7 @@ export function DynamicTable({
           filters={filters}
           onApply={handleFilterApply}
           isFiltering={isFiltering}
+          initialValues={filterValues}
         />
       )}
     </div>

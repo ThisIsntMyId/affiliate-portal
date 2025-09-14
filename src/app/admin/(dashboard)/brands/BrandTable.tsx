@@ -124,9 +124,16 @@ export default function BrandTable({ data }: { data: PaginatedBrandsResponse }) 
 
             // NEW: Handle batch updates from the modal
             case 'filterBatch':
-                // You can implement logic to handle batch updates here if needed
-                // For now, this case can be left empty or point to the single filter logic
-                // if your modal only supports one filter at a time.
+                const batchFilters = action.data as Record<string, unknown>;
+                // Clear existing filter params first
+                currentParams.delete('status');
+                // Apply new batch filters
+                Object.entries(batchFilters).forEach(([key, value]) => {
+                    if (value && value !== 'all' && value !== '') {
+                        currentParams.set(key, String(value));
+                    }
+                });
+                currentParams.set('page', '1');
                 break;
 
             case 'sort':
