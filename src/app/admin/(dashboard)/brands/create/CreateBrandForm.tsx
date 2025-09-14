@@ -22,9 +22,11 @@ const formConfig: FormFieldConfig[] = [
     required: true,
     description: 'Upload the brand logo here',
     fileConfig: {
-      image: true,
+      image: false,
       maxFiles: 1,
-      multiple: false
+      multiple: false,
+      maxSize: 100 * 1024, // 100kb
+      accept: 'image/*'
     }
   },
   {

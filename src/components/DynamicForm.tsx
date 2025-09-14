@@ -171,6 +171,16 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
         fieldSchema = (fieldSchema as z.ZodString).min(1, { message: `${field.label} is required` })
       } else if (z.array(z.unknown()).safeParse(fieldSchema).success) {
         fieldSchema = (fieldSchema as z.ZodArray<z.ZodUnknown>).min(1, { message: `${field.label} is required` })
+      } else if (field.type === 'file') {
+        // For file fields, we need special handling for required validation
+        if (field.fileConfig?.multiple) {
+          fieldSchema = (fieldSchema as z.ZodArray<z.ZodUnion<[z.ZodType<File>, z.ZodString]>>).min(1, { message: `${field.label} is required` })
+        } else {
+          fieldSchema = (fieldSchema as z.ZodUnion<[z.ZodType<File>, z.ZodString]>).refine(
+            (val) => val !== null && val !== undefined,
+            { message: `${field.label} is required` }
+          )
+        }
       }
     } else {
       fieldSchema = fieldSchema.optional()
@@ -674,10 +684,20 @@ function FileField({ config, form }: { config: FormFieldConfig; form: FormType }
     const validFiles = selectedFiles.filter(file => {
       if (file.size > maxSize) {
         toast.error(`File ${file.name} is too large. Maximum size is ${formatFileSize(maxSize)}.`)
+        // Set form error for file size validation
+        form.setError(config.name, { 
+          type: 'manual', 
+          message: `File size exceeds maximum allowed size of ${formatFileSize(maxSize)}` 
+        })
         return false
       }
       return true
     })
+    
+    // Clear any previous file size errors if validation passes
+    if (validFiles.length > 0) {
+      form.clearErrors(config.name)
+    }
     
     if (validFiles.length === 0) return
     
@@ -734,15 +754,21 @@ function FileField({ config, form }: { config: FormFieldConfig; form: FormType }
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center p-2 text-center">
-              <div className="text-lg font-bold text-muted-foreground mb-1">
+            <div className="flex flex-col items-center justify-center p-1 text-center w-full h-full">
+              <div className="text-lg font-bold text-muted-foreground mb-1 leading-none">
                 {getFileInitials(filename)}
               </div>
-              <div className="text-xs text-muted-foreground truncate w-full px-1">
+              <div className="text-xs text-muted-foreground px-1 leading-tight break-words overflow-hidden" style={{ 
+                display: '-webkit-box', 
+                WebkitLineClamp: 2, 
+                WebkitBoxOrient: 'vertical',
+                maxHeight: '2.4em',
+                lineHeight: '1.2em'
+              }}>
                 {filename}
               </div>
               {typeof file !== 'string' && (
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-xs text-muted-foreground mt-1 leading-none">
                   {formatFileSize(file.size)}
                 </div>
               )}
