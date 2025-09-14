@@ -11,6 +11,9 @@ export default async function EditBrandPage({ params }: {params: Promise<{id: st
     notFound();
   }
 
+  // sleep for 5 sec
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
   const brand = await BrandModel.getBrandById(brandId);
   
   if (!brand) {

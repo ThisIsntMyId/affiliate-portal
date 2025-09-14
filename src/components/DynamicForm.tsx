@@ -24,6 +24,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { FileUploader, FileInput, FileUploaderContent, FileUploaderItem } from '@/components/ui/file-upload'
 import { RichTextEditor } from '@/components/RichTextEditor'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Custom Error Class
 export class DynamicFormSubmissionError extends Error {
@@ -88,12 +89,13 @@ export interface FormFieldConfig {
 
 export interface DynamicFormProps {
   config: FormFieldConfig[]
-  onSubmit: (values: Record<string, unknown>) => Promise<void>
+  onSubmit?: (values: Record<string, unknown>) => Promise<void>
   defaultValues?: Record<string, unknown>
   schema?: z.ZodSchema
   submitText?: string
   loadingText?: string
   submitButtonAlign?: 'full' | 'left' | 'right'
+  loading?: boolean
 }
 
 // Schema Generation
@@ -784,8 +786,65 @@ function RichTextField({ config, form }: { config: FormFieldConfig; form: FormTy
   )
 }
 
+// Form Skeleton Component
+function FormSkeleton({ config }: { config: FormFieldConfig[] }) {
+  return (
+    <div className="space-y-6">
+      {config.map((field, index) => (
+        <div key={field.name || index} className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          
+          {field.type === 'textarea' || field.type === 'richtext' ? (
+            <Skeleton className="h-20 w-full" />
+          ) : field.type === 'checkbox' || field.type === 'switch' ? (
+            <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          ) : field.type === 'checkboxgroup' ? (
+            <div className="space-y-2">
+              {field.options?.slice(0, 3).map((_, optionIndex) => (
+                <div key={optionIndex} className="flex items-center space-x-2">
+                  <Skeleton className="h-4 w-4" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : field.type === 'radio' ? (
+            <div className="space-y-2">
+              {field.options?.slice(0, 3).map((_, optionIndex) => (
+                <div key={optionIndex} className="flex items-center space-x-3 space-y-0">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : field.type === 'file' || field.type === 'image' ? (
+            <Skeleton className="h-24 w-full border-2 border-dashed border-gray-300 rounded-lg" />
+          ) : field.type === 'date' ? (
+            <Skeleton className="h-10 w-48" />
+          ) : field.type === 'select' || field.type === 'multiselect' || field.type === 'combobox' ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <Skeleton className="h-10 w-full" />
+          )}
+          
+          {field.description && (
+            <Skeleton className="h-3 w-3/4" />
+          )}
+        </div>
+      ))}
+      
+      {/* Submit button skeleton */}
+      <div className="flex w-full">
+        <Skeleton className="h-10 w-24" />
+      </div>
+    </div>
+  )
+}
+
 // Main Component
-export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full' }: DynamicFormProps) {
+export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', loading = false }: DynamicFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -803,7 +862,7 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
     try {
       setFormError(null)
       setIsSubmitting(true)
-      await onSubmit(values as Record<string, unknown>)
+      await onSubmit?.(values as Record<string, unknown>)
       toast.success('Form submitted successfully!')
     } catch (error) {
       console.log("🚀 ~ handleSubmit ~ error:", error)
@@ -830,6 +889,11 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
     }
   }
   
+  // Show skeleton loader when loading
+  if (loading) {
+    return <FormSkeleton config={config} />
+  }
+
   const formContent = (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
       {/* Form-level error display */}
