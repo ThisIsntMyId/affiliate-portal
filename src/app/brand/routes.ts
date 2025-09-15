@@ -1,6 +1,10 @@
 import { createRouteBuilder } from "@/lib/routes"
 
 const routes = {
+  // Auth routes
+  'brand.login': '/brand/login',
+  'brand.inactive': '/brand/inactive',
+  
   // Dashboard routes
   'brand.dashboard': '/brand',
   

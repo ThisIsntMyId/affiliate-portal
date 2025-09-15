@@ -4,13 +4,13 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { config } from '@/config';
-import { AuthModel } from '@/models/admin/auth.model';
-import { createJWTToken } from '@/auth/admin';
-import { getRoute } from '@/app/admin/routes';
+import { AuthModel } from '@/models/brand/auth.model';
+import { createJWTToken } from '@/auth/brand';
+import { getRoute } from '@/app/brand/routes';
 
 // Validation schema for login
 const loginSchema = z.object({
-  email: z.email('Invalid email address'),
+  email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -20,21 +20,30 @@ export async function login(data: unknown) {
     // Validate input
     const validated = loginSchema.parse(data);
     
-    // Authenticate admin
-    const admin = await AuthModel.authenticate(validated);
-    if (!admin) {
+    // Authenticate brand
+    const brand = await AuthModel.authenticate(validated);
+    if (!brand) {
       return {
         success: false,
         error: 'Invalid email or password',
       };
     }
 
+    // Check if brand is active
+    if (brand.status !== 'active') {
+      return {
+        success: false,
+        error: 'Your account is inactive. Please contact support.',
+      };
+    }
+
     // Create JWT token
     const token = createJWTToken({
-      id: admin.id,
-      email: admin.email,
-      name: admin.name || 'Admin',
-      type: 'admin',
+      id: brand.id,
+      email: brand.email,
+      name: brand.name || 'Brand',
+      logo: brand.logo || undefined,
+      type: 'brand',
     });
     
     // Set cookie
@@ -46,10 +55,10 @@ export async function login(data: unknown) {
       maxAge: config.session.cookieDuration,
     });
 
-    console.log(getRoute('admin.dashboard'))
+    console.log(getRoute('brand.dashboard'))
     
-    // Redirect to admin dashboard
-    return redirect(getRoute('admin.dashboard'));
+    // Redirect to brand dashboard
+    return redirect(getRoute('brand.dashboard'));
     
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -72,5 +81,12 @@ export async function login(data: unknown) {
 export async function logout() {
   const cookieStore = await cookies();
   cookieStore.delete(config.session.cookieName);
-  redirect(getRoute('admin.login'));
+  return redirect(getRoute('brand.login'));
+}
+
+// Clear session action (without redirect)
+export async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.delete(config.session.cookieName);
+  return { success: true };
 }
