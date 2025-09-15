@@ -197,16 +197,93 @@ export async function updateBrand(id: number, data: unknown) {
       }
     }
 
-    // Update brand
-    const updatedBrand = await BrandModel.updateBrand(id, {
-      ...validated,
-    });
+    // Prepare update data without logo (logo will be handled separately)
+    const { logo, ...updateData } = validated;
+
+    let logoUrl: string | undefined = undefined;
+    let uploadedFilePath: string | undefined = undefined;
+    let oldLogoPath: string | undefined = undefined;
+
+    // Handle logo upload if present
+    if (logo) {
+      try {
+        // Store old logo path for cleanup if it exists
+        if (brand.logo) {
+          // Extract the file path from the logo URL for cleanup
+          // Assuming logo URL format: http://domain/path/to/file
+          const url = new URL(brand.logo);
+          oldLogoPath = url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname;
+        }
+
+        // Get extension from File object
+        const fileExtension = getFileExtension(logo);
+        const filename = generateBrandLogoFilename(brand.code!, fileExtension);
+        const directoryPath = generateBrandLogoDirectory(brand.id);
+        const fullFilePath = `${directoryPath}/${filename}`;
+        
+        // Ensure directory exists
+        await ensureDirectoryExists(directoryPath);
+        
+        // Convert File to Buffer for upload
+        const fileBuffer = await logo.arrayBuffer();
+        
+        // Upload to storage
+        await storageService.write(fullFilePath, Buffer.from(fileBuffer), {
+          contentType: logo.type
+        });
+        
+        // Get public URL
+        logoUrl = await storageService.publicUrl(fullFilePath);
+        uploadedFilePath = fullFilePath;
+        
+        // Add logo URL to update data
+        (updateData as Record<string, unknown>).logo = logoUrl;
+        
+      } catch (uploadError) {
+        console.error('Logo upload failed:', uploadError);
+        // Cleanup uploaded file if brand update fails
+        if (uploadedFilePath) {
+          try {
+            // Note: FileStorage might not have delete method, 
+            // cleanup would need to be handled by storage service implementation
+            console.warn('File uploaded but brand update failed. Manual cleanup may be required:', uploadedFilePath);
+          } catch (cleanupError) {
+            console.error('Failed to cleanup uploaded file:', cleanupError);
+          }
+        }
+        
+        return {
+          success: false,
+          error: 'Failed to upload brand logo. Please try again.'
+        };
+      }
+    }
+
+    // Update brand with all data (including new logo URL if uploaded)
+    const updatedBrand = await BrandModel.updateBrand(id, updateData);
 
     if (!updatedBrand) {
       return {
         success: false,
         error: 'Brand update failed'
       };
+    }
+
+    // Cleanup old logo file if new logo was uploaded successfully
+    if (logo && oldLogoPath && logoUrl) {
+      try {
+        // Note: FileStorage interface may not have delete method
+        // This is a placeholder for future implementation
+        // For now, we log the cleanup requirement
+        console.log('Old logo file should be cleaned up:', oldLogoPath);
+        
+        // TODO: Implement file deletion when storage service supports it
+        // await storageService.delete(oldLogoPath);
+        
+      } catch (cleanupError) {
+        console.error('Failed to cleanup old logo file:', cleanupError);
+        // Don't fail the update if cleanup fails
+      }
     }
 
     revalidatePath('/admin/brands');
