@@ -72,7 +72,6 @@ export default function AffiliateRegisterPage() {
         submitText="Create Account"
         loadingText="Creating account..."
         submitButtonAlign="full"
-        showCard={false}
       />
       
       <div className="mt-6 text-center">

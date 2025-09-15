@@ -1,5 +1,5 @@
 import { brands } from '@/db/schema';
-import { eq, sql, desc, asc, and, or, like, count, AnyColumn } from 'drizzle-orm';
+import { eq, desc, asc, and, or, like, count, AnyColumn } from 'drizzle-orm';
 import { BrandStatus } from '@/constants/brand';
 import db from '@/db/db';
 import { paginate } from '@/lib/paginate';

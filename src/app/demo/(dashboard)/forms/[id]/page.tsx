@@ -2,7 +2,6 @@
 
 import { DynamicForm, FormFieldConfig, DynamicFormSubmissionError } from '@/components/DynamicForm'
 import { Card, CardContent } from '@/components/ui/card'
-import { getRoute } from '../../routes'
 
 // Demo form configuration based on the brand edit form pattern
 const editFormConfig: FormFieldConfig[] = [
@@ -149,8 +148,6 @@ export default function EditFormDemoPage() {
             submitText="Update Brand"
             loadingText="Updating..."
             submitButtonAlign="right"
-            title="Edit Brand Information"
-            description="Update the brand details below. All changes will be saved immediately."
           />
         </CardContent>
       </Card>

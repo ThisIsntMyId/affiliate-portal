@@ -2,7 +2,6 @@
 
 import { DynamicForm, FormFieldConfig, DynamicFormSubmissionError } from '@/components/DynamicForm'
 import { Card, CardContent } from '@/components/ui/card'
-import { getRoute } from '../../routes'
 
 // Demo form configuration based on the brand create form pattern
 const createFormConfig: FormFieldConfig[] = [
@@ -158,8 +157,6 @@ export default function CreateFormDemoPage() {
             loadingText="Creating..."
             submitButtonAlign="right"
             gridCols={2}
-            title="Create New Brand"
-            description="Fill out the form below to create a new brand in the system."
           />
         </CardContent>
       </Card>

@@ -46,7 +46,6 @@ export default function AffiliateLoginPage() {
         submitText="Sign In"
         loadingText="Signing in..."
         submitButtonAlign="full"
-        showCard={false}
       />
       
       <div className="mt-6 text-center">

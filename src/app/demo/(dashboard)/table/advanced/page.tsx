@@ -5,7 +5,7 @@ import { DynamicTable, TableAction, ColumnConfig } from '@/components/DynamicTab
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Edit, Globe, Search } from 'lucide-react'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
-import { useTransition } from 'react'
+import { useTransition, Suspense } from 'react'
 
 // Sample brand data for the advanced table demo
 const sampleBrandData = [
@@ -151,7 +151,7 @@ const tableConfig: ColumnConfig[] = [
   }
 ]
 
-export default function AdvancedTableDemoPage() {
+function AdvancedTableContent() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
@@ -405,5 +405,13 @@ export default function AdvancedTableDemoPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdvancedTableDemoPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdvancedTableContent />
+    </Suspense>
   );
 }

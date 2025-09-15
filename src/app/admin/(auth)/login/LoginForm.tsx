@@ -60,7 +60,6 @@ export function LoginForm() {
       submitText="Sign In"
       loadingText="Signing in..."
       submitButtonAlign="full"
-      showCard={false}
     />
   );
 }
