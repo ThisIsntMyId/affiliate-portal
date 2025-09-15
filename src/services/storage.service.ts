@@ -34,7 +34,11 @@ const storageDrivers = {
     }
     
     return new FileStorage(
-      new LocalStorageAdapter(config.path)
+      new LocalStorageAdapter(config.path, {
+        publicUrlOptions: {
+          baseUrl: config.publicUrl
+        }
+      })
     )
   },
 

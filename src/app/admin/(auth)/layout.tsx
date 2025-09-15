@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/auth/admin';
-import { getRoute } from '../routes';
+import { getRoute } from '@/app/admin/routes';
 
 export default async function AdminAuthLayout({
   children,

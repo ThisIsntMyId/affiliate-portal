@@ -29,6 +29,13 @@
       "when": 1757870326353,
       "tag": "0003_perfect_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757885197249,
+      "tag": "0004_superb_carnage",
+      "breakpoints": true
     }
   ]
 }

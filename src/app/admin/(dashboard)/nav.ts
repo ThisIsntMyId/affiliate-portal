@@ -1,7 +1,7 @@
 "use client"
 
 import { NavigationConfig } from '@/types/navigation';
-import { getRoute } from '../routes';
+import { getRoute } from '@/app/admin/routes';
 import { 
   LayoutDashboard, 
   Building2

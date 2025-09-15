@@ -29,3 +29,13 @@ export const BrandSortOptionsLabels: Record<string, string> = {
   'name-asc': 'Name (A-Z)',
   'name-desc': 'Name (Z-A)',
 }
+
+// Brand logo upload configuration
+export const BRAND_LOGO_UPLOAD_PATH = '/brands/{brandId}/logo';
+export const BRAND_LOGO_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+export const BRAND_LOGO_ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png', 
+  'image/webp',
+  'image/svg+xml'
+];

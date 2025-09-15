@@ -49,6 +49,7 @@ export const brands = pgTable('brands', {
 
     website: varchar('website', { length: 255 }),
     trackingDomain: varchar('tracking_domain', { length: 255 }).unique(),
+    logo: varchar('logo', { length: 500 }),
     status: varchar('status', { length: 50 }).notNull().default('active'),
     settings: jsonb('settings'),
 

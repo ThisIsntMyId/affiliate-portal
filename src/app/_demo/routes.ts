@@ -1,19 +1,6 @@
-/**
- * Demo panel routes configuration
- * 
- * This file defines all routes for the demo panel using the centralized
- * routing system. Routes follow Laravel's dot notation pattern.
- */
+import { createRouteBuilder } from "@/lib/routes";
 
-import { 
-  buildRoute, 
-  type RouteConfig, 
-  type RouteParams, 
-  type RouteQuery 
-} from '@/lib/routes'
-
-// Demo panel route definitions - only actual routes that exist
-const routes: RouteConfig = {
+const routes = {
   // Dashboard routes
   'demo.dashboard': '/demo',
   
@@ -40,26 +27,4 @@ const routes: RouteConfig = {
   'demo.verify-account': '/demo/verify-account'
 } as const
 
-export function getRoute(
-  routeName: keyof typeof routes,
-  params?: RouteParams,
-  query?: RouteQuery
-): string {
-  return buildRoute(routes[routeName], params, query)
-}
-
-export function getFullRoute(
-  routeName: keyof typeof routes,
-  params?: RouteParams,
-  query?: RouteQuery
-): string {
-  // Get base URL from environment or use localhost for development
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                  process.env.VERCEL_URL || 
-                  'http://localhost:3000'
-  
-  return buildRoute(routes[routeName], params, query, baseUrl)
-}
-
-// Export the routes object for type checking and debugging
-export { routes }
+export const getRoute = createRouteBuilder(routes)

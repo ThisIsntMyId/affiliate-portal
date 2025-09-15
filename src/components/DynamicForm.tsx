@@ -52,8 +52,9 @@ export class DynamicFormSubmissionError extends Error {
  *     image: true,          // ← Enables image preview
  *     boxSizeWidth: 150,
  *     boxSizeHeight: 150,
- *     accept: "image/*",
- *     maxSize: 5 * 1024 * 1024
+ *     accept: ["image/png", "image/jpeg"], // ← Can be string or array
+ *     maxSize: 5 * 1024 * 1024,
+ *     hint: "Upload PNG or JPEG image up to 5MB" // ← Custom hint
  *   }
  * }
  * 
@@ -69,8 +70,9 @@ export class DynamicFormSubmissionError extends Error {
  *     boxSizeWidth: 100,
  *     boxSizeHeight: 100,
  *     gridColumns: 5,
- *     accept: ".pdf,.doc,.docx",
+ *     accept: [".pdf", ".doc", ".docx"], // ← Array format
  *     maxSize: 10 * 1024 * 1024
+ *     // hint: omitted - will auto-generate from accept, maxFiles, maxSize
  *   }
  * }
  * 
@@ -95,8 +97,9 @@ export interface FormFieldConfig {
     boxSizeWidth?: number
     boxSizeHeight?: number
     gridColumns?: number
-    accept?: string
+    accept?: string | string[]
     maxSize?: number
+    hint?: string
   }
   richtextConfig?: {
     variant: 'minimal' | 'full'
@@ -619,7 +622,8 @@ function FileField({ config, form }: { config: FormFieldConfig; form: FormType }
   const boxHeight = config.fileConfig?.boxSizeHeight || 120
   const gridColumns = config.fileConfig?.gridColumns || 5
   const isImageType = config.fileConfig?.image || false
-  const accept = config.fileConfig?.accept || (isImageType ? 'image/*' : '*/*')
+  const acceptRaw = config.fileConfig?.accept || (isImageType ? 'image/*' : '*/*')
+  const accept = Array.isArray(acceptRaw) ? acceptRaw.join(', ') : acceptRaw
   const maxSize = config.fileConfig?.maxSize || 1024 * 1024 * 4
   
   // Initialize files from form default values
@@ -812,6 +816,12 @@ function FileField({ config, form }: { config: FormFieldConfig; form: FormType }
   }
   
   const generateFileHints = () => {
+    // If custom hint is provided, use it
+    if (config.fileConfig?.hint) {
+      return config.fileConfig.hint
+    }
+    
+    // Otherwise, generate hints automatically
     const hints: string[] = []
     
     if (accept && accept !== '*/*') {

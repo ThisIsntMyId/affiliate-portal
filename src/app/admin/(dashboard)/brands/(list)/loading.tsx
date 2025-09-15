@@ -1,42 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { getRoute } from '../../routes';
-import { ColumnConfig, DynamicTable } from '@/components/DynamicTable';
+import { getRoute } from '@/app/admin/routes';
+import { DynamicTable } from '@/components/DynamicTable';
 import { Card, CardContent } from '@/components/ui/card';
-
-const columns: ColumnConfig[] = [
-    {
-        key: 'col1',
-        field: 'col1',
-        label: 'Col1',
-        type: 'text',
-    },
-    {
-        key: 'col2',
-        field: 'col2',
-        label: 'Col2',
-        type: 'text',
-    },
-    {
-        key: 'col3',
-        field: 'col3',
-        label: 'Col3',
-        type: 'text',
-    },
-    {
-        key: 'col4',
-        field: 'col4',
-        label: 'Col4',
-        type: 'text',
-    },
-    {
-        key: 'col5',
-        field: 'col5',
-        label: 'Col5',
-        type: 'text',
-    }
-];
+import { genericTableLoadingConfig } from '@/lib/genericTableAndFormConfig';
 
 export default async function AdminBrands() {
   
@@ -60,7 +28,7 @@ export default async function AdminBrands() {
                 <DynamicTable
                     loading={true}
                     data={[]}
-                    columns={columns}
+                    columns={genericTableLoadingConfig}
                 />
             </CardContent>
         </Card>

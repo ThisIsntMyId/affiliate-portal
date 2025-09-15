@@ -3,7 +3,7 @@ import { BaseLayout } from '@/components/BaseLayout';
 import { adminNavigationConfig } from './nav';
 import { BrandLogo, UserProfile, LogoutButton } from './_components';
 import { getCurrentUser } from '@/auth/admin';
-import { getRoute } from '../routes';
+import { getRoute } from '@/app/admin/routes';
 import { AuthProvider } from './_components/AuthProvider';
 
 export default async function AdminLayout({

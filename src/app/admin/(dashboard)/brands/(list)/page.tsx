@@ -2,8 +2,8 @@ import { BrandModel, BrandSortOptions } from '@/models/admin/brand.model';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { getRoute } from '../../routes';
 import BrandTable from './BrandTable';
+import { getRoute } from '@/app/admin/routes';
 
 export default async function AdminBrands({
   searchParams,
@@ -11,7 +11,7 @@ export default async function AdminBrands({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   // sleep for 5 sec
-  // await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise(resolve => setTimeout(resolve, 5000));
 
   // 1. Await searchParams before accessing its properties
   const query = await searchParams;
