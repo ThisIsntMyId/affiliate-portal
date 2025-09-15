@@ -31,7 +31,7 @@ export const BrandSortOptionsLabels: Record<string, string> = {
 }
 
 // Brand logo upload configuration
-export const BRAND_LOGO_UPLOAD_PATH = '/brands/{brandId}/logo';
+export const BRAND_LOGO_UPLOAD_PATH = '/brands/{brandCode}/logo';
 export const BRAND_LOGO_MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export const BRAND_LOGO_ALLOWED_TYPES = [
   'image/jpeg',

@@ -1,3 +1,5 @@
+"use server"
+
 // For SQLite, use: import { SqliteSelect } from 'drizzle-orm/sqlite-core';
 import { PgSelect } from 'drizzle-orm/pg-core';
 

@@ -1,6 +1,6 @@
 import { DynamicForm } from '@/components/DynamicForm';
 import { Card, CardContent } from '@/components/ui/card';
-import { genericFormLoadingConfig } from '@/lib/genericTableAndFormConfig';
+import { skeletonFormFields } from '@/lib/skeletonConfigs';
 
 export default function Loading() {
   return (
@@ -13,7 +13,7 @@ export default function Loading() {
       <Card className="w-full">
         <CardContent>
           <DynamicForm
-            config={genericFormLoadingConfig}
+            config={skeletonFormFields}
             loading={true}
           />
         </CardContent>

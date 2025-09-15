@@ -64,8 +64,7 @@ export async function login(data: unknown) {
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        // errors: z.treeifyError(error),
-        errors: z.flattenError(error),
+        errors: z.flattenError(error).fieldErrors,
       };
     }
     

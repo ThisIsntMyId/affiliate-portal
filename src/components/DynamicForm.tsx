@@ -24,6 +24,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { RichTextEditor } from '@/components/RichTextEditor'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TagsInput } from './ui/tags-input'
 
 // Custom Error Class
 export class DynamicFormSubmissionError extends Error {
@@ -83,7 +84,7 @@ export class DynamicFormSubmissionError extends Error {
 export interface FormFieldConfig {
   name: string
   label: string
-  type: 'input' | 'password' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'combobox' | 'number' | 'email' | 'richtext'
+  type: 'input' | 'password' | 'textarea' | 'select' | 'multiselect' | 'checkbox' | 'checkboxgroup' | 'switch' | 'date' | 'radio' | 'file' | 'combobox' | 'number' | 'email' | 'richtext' | 'tags'
   required?: boolean
   placeholder?: string
   description?: string
@@ -133,6 +134,9 @@ function generateSchemaFromConfig(config: FormFieldConfig[]): z.ZodSchema {
       case 'textarea':
       case 'richtext':
         fieldSchema = z.string()
+        break
+      case 'tags':
+        fieldSchema = z.array(z.string())
         break
       case 'number':
         fieldSchema = z.coerce.number()
@@ -214,6 +218,8 @@ function renderField(config: FormFieldConfig, form: FormType) {
       return <EmailField config={config} form={form} />
     case 'textarea':
       return <TextareaField config={config} form={form} />
+    case 'tags':
+      return <TagsField config={config} form={form} />
     case 'select':
       return <SelectField config={config} form={form} />
     case 'multiselect':
@@ -376,6 +382,27 @@ function TextareaField({ config, form }: { config: FormFieldConfig; form: FormTy
         placeholder={config.placeholder}
         className="resize-none"
         {...form.register(config.name)}
+      />
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
+      )}
+      {form.formState.errors[config.name] && (
+        <p className="text-sm text-destructive">{form.formState.errors[config.name]?.message as string}</p>
+      )}
+    </div>
+  )
+}
+
+function TagsField({ config, form }: { config: FormFieldConfig; form: FormType }) {
+  
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={config.name}>{config.label}</Label>
+      <TagsInput
+        value={form.watch(config.name) as string[] || []}
+        onChange={(tags: string[]) => form.setValue(config.name, tags)}
+        placeholder={config.placeholder}
+        disabled={form.formState.isSubmitting}
       />
       {config.description && (
         <p className="text-sm text-muted-foreground">{config.description}</p>

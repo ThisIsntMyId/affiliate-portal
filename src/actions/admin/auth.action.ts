@@ -46,8 +46,6 @@ export async function login(data: unknown) {
       maxAge: config.session.cookieDuration,
     });
 
-    console.log(getRoute('admin.dashboard'))
-    
     // Redirect to admin dashboard
     return redirect(getRoute('admin.dashboard'));
     
@@ -55,8 +53,7 @@ export async function login(data: unknown) {
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        // errors: z.treeifyError(error),
-        errors: z.flattenError(error),
+        errors: z.flattenError(error).fieldErrors,
       };
     }
     

@@ -41,7 +41,7 @@ export const admins = pgTable('admins', {
 
 export const brands = pgTable('brands', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).unique(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
     
     name: varchar('name', { length: 255 }).notNull(),
     email: varchar('email', { length: 255 }).notNull().unique(),
@@ -107,7 +107,7 @@ export const referrers = pgTable('referrers', {
 
 export const campaigns = pgTable('campaigns', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).unique(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
     
     brandId: integer('brand_id').notNull().references(() => brands.id),
     
@@ -136,7 +136,7 @@ export const campaigns = pgTable('campaigns', {
 
 export const commissionRates = pgTable('commission_rates', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).unique(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
 
     campaignId: integer('campaign_id').notNull().references(() => campaigns.id),
     
@@ -155,7 +155,7 @@ export const commissionRates = pgTable('commission_rates', {
 
 export const creatives = pgTable('creatives', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).unique(),
+    code: varchar('code', { length: 50 }).notNull().unique(),
     
     campaignId: integer('campaign_id').notNull().references(() => campaigns.id),
     

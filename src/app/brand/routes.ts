@@ -11,8 +11,7 @@ const routes = {
   // Campaign routes
   'brand.campaigns': '/brand/campaigns',
   'brand.campaigns.create': '/brand/campaigns/create',
-  'brand.campaigns.edit': '/brand/campaigns/[id]/edit',
-  'brand.campaigns.show': '/brand/campaigns/[id]',
+  'brand.campaigns.edit': '/brand/campaigns/[id]',
   
   // Affiliate Group routes
   'brand.affiliates': '/brand/affiliates',

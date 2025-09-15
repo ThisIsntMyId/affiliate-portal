@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react'
+import { Search, Filter, ChevronLeft, ChevronRight, Loader2, X, ExternalLink } from 'lucide-react'
 import { get } from 'lodash'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +31,7 @@ export interface ColumnConfig {
   key: string
   label: string
   field?: string // for nested data like 'user.profile.name'
-  type: 'text' | 'image' | 'tag' | 'custom' | 'actions'
+  type: 'text' | 'image' | 'tag' | 'custom' | 'actions' | 'link' | 'tags' | 'boolean'
   width?: string
   align?: 'left' | 'center' | 'right'
 
@@ -42,6 +42,10 @@ export interface ColumnConfig {
   // For tag type
   tagColors?: Record<string, string> // { active: 'bg-green-500', inactive: 'bg-red-500' }
   tagLabel?: Record<string, string> // { active: 'Active', inactive: 'Inactive' }
+
+  // For boolean type
+  trueLabel?: string
+  falseLabel?: string
 
   // For custom type
   render?: (row: Record<string, unknown>, index: number) => React.ReactNode
@@ -152,6 +156,45 @@ function renderCell(column: ColumnConfig, row: Record<string, unknown>, index: n
         <Badge className={color}>
           {column.tagLabel?.[tagValue] || tagValue}
         </Badge>
+      )
+
+    case 'link':
+      const linkValue = getNestedValue(row, column.field)
+      if (!linkValue || typeof linkValue !== 'string') return '-'
+      return (
+        <a
+          href={linkValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+        >
+          <ExternalLink className="h-3 w-3" />
+          {linkValue.length > 30 ? `${linkValue.substring(0, 30)}...` : linkValue}
+        </a>
+      )
+
+    case 'tags':
+      const tagsValue = getNestedValue(row, column.field)
+      if (!tagsValue || !Array.isArray(tagsValue) || tagsValue.length === 0) {
+        return <span className="text-gray-400">-</span>
+      }
+      
+      return (
+        <div className="flex flex-wrap gap-1">
+          {tagsValue.map((tag: string, index: number) => (
+            <Badge key={index} variant="outline" className="text-xs bg-gray-100 text-gray-700 border-gray-300">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )
+
+    case 'boolean':
+      const booleanValue = getNestedValue(row, column.field)
+      return (
+        <span className="text-sm font-medium">
+          {booleanValue ? column.trueLabel || 'True' : column.falseLabel || 'False'}
+        </span>
       )
 
     case 'custom':
