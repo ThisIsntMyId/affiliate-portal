@@ -31,10 +31,13 @@ const updateBrandSchema = z.object({
   email: z.email('Invalid email address').max(255, 'Email must be less than 255 characters').optional(),
   website: z.url('Invalid website URL').optional().or(z.literal('')),
   status: z.enum([BrandStatus.ACTIVE, BrandStatus.INACTIVE, BrandStatus.SUSPENDED]).optional(),
-  logo: z.file()
-    .max(BRAND_LOGO_MAX_SIZE, 'File size too large. Maximum size is 5MB.')
-    .mime(BRAND_LOGO_ALLOWED_TYPES, 'Invalid file type. Only JPEG, PNG, WebP, and SVG are allowed.')
-    .optional(),
+  logo: z.union([
+    z.file()
+      .max(BRAND_LOGO_MAX_SIZE, 'File size too large. Maximum size is 5MB.')
+      .mime(BRAND_LOGO_ALLOWED_TYPES, 'Invalid file type. Only JPEG, PNG, WebP, and SVG are allowed.')
+      .optional(),
+    z.string().min(1, 'Logo is required').optional()
+  ]),
   timezone: z.string().optional()
 });
 
@@ -205,7 +208,7 @@ export async function updateBrand(id: number, data: unknown) {
     let oldLogoPath: string | undefined = undefined;
 
     // Handle logo upload if present
-    if (logo) {
+    if (logo && logo instanceof File) {
       try {
         // Store old logo path for cleanup if it exists
         if (brand.logo) {
