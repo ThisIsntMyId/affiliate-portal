@@ -1,5 +1,5 @@
 import { campaigns } from '@/db/schema';
-import { eq, desc, asc, and, or, like, count, AnyColumn } from 'drizzle-orm';
+import { eq, desc, asc, and, or, like, count, AnyColumn, sql } from 'drizzle-orm';
 import { CampaignStatus } from '@/constants/campaign';
 import db from '@/db/db';
 import { paginate } from '@/lib/paginate';
@@ -69,7 +69,7 @@ export const CampaignModel = {
         or(
           like(campaigns.title, `%${search}%`),
           like(campaigns.code, `%${search}%`),
-          // like(campaigns.tags, `%${search}%`)
+          sql`EXISTS (SELECT 1 FROM jsonb_array_elements_text(${campaigns.tags}) as elem WHERE elem.value LIKE ${`%${search}%`})`
         )!
       );
     }
