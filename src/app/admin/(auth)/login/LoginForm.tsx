@@ -44,7 +44,7 @@ export function LoginForm() {
     if (!result?.success) {
       if (result?.errors) {
         // Handle field-specific errors
-        throw new DynamicFormSubmissionError('Validation failed', result.errors.fieldErrors);
+        throw new DynamicFormSubmissionError('Validation failed', result.errors);
       } else if (result?.error) {
         // Handle general error
         throw new DynamicFormSubmissionError(result.error);
