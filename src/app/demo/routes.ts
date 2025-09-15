@@ -6,9 +6,12 @@ const routes = {
   
   // Form routes
   'demo.forms': '/demo/forms',
+  'demo.forms.create': '/demo/forms/create',
+  'demo.forms.edit': '/demo/forms/[id]',
   
   // Table routes
   'demo.table': '/demo/table',
+  'demo.table.advanced': '/demo/table/advanced',
   
   // Chart routes
   'demo.charts': '/demo/charts',

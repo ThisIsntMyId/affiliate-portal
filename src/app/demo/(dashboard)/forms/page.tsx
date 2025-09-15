@@ -1,6 +1,7 @@
 "use client"
 
 import { DynamicForm, FormFieldConfig, DynamicFormSubmissionError } from '@/components/DynamicForm'
+import { Card, CardContent } from '@/components/ui/card'
 
 const demoConfig: FormFieldConfig[] = [
   // Basic Input Fields
@@ -308,16 +309,18 @@ export default function FormsDemoPage() {
         </ul>
       </div>
       
-      <DynamicForm
-        config={demoConfig}
-        onSubmit={handleSubmit}
-        defaultValues={defaultValues}
-        submitText="Save Profile"
-        loadingText="Saving Profile..."
-        submitButtonAlign="full"
-        title="User Profile Form"
-        description="Complete your profile information below. All fields marked with * are required."
-      />
+      <Card className="w-full">
+        <CardContent>
+          <DynamicForm
+            config={demoConfig}
+            onSubmit={handleSubmit}
+            defaultValues={defaultValues}
+            submitText="Save Profile"
+            loadingText="Saving Profile..."
+            submitButtonAlign="full"
+          />
+        </CardContent>
+      </Card>
       
       <div className="mt-8 text-center text-sm text-muted-foreground">
         <p>Try submitting with different values to test the error handling!</p>
@@ -331,41 +334,47 @@ export default function FormsDemoPage() {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-3">Full Width (Default)</h3>
-            <DynamicForm
-              config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
-              onSubmit={handleSubmit}
-              submitText="Submit Full Width"
-              loadingText="Submitting..."
-              submitButtonAlign="full"
-              title="Basic Information"
-              description="Enter your basic details below."
-            />
+            <Card className="w-full">
+              <CardContent>
+                <DynamicForm
+                  config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
+                  onSubmit={handleSubmit}
+                  submitText="Submit Full Width"
+                  loadingText="Submitting..."
+                  submitButtonAlign="full"
+                />
+              </CardContent>
+            </Card>
           </div>
           
           <div>
             <h3 className="text-lg font-semibold mb-3">Left Aligned</h3>
-            <DynamicForm
-              config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
-              onSubmit={handleSubmit}
-              submitText="Submit Left"
-              loadingText="Submitting..."
-              submitButtonAlign="left"
-              title="Contact Details"
-              description="Provide your contact information."
-            />
+            <Card className="w-full">
+              <CardContent>
+                <DynamicForm
+                  config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
+                  onSubmit={handleSubmit}
+                  submitText="Submit Left"
+                  loadingText="Submitting..."
+                  submitButtonAlign="left"
+                />
+              </CardContent>
+            </Card>
           </div>
           
           <div>
             <h3 className="text-lg font-semibold mb-3">Right Aligned</h3>
-            <DynamicForm
-              config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
-              onSubmit={handleSubmit}
-              submitText="Submit Right"
-              loadingText="Submitting..."
-              submitButtonAlign="right"
-              title="Personal Info"
-              description="Tell us about yourself."
-            />
+            <Card className="w-full">
+              <CardContent>
+                <DynamicForm
+                  config={demoConfig.slice(0, 3)} // Just show first 3 fields for demo
+                  onSubmit={handleSubmit}
+                  submitText="Submit Right"
+                  loadingText="Submitting..."
+                  submitButtonAlign="right"
+                />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

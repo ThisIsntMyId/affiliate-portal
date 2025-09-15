@@ -1,6 +1,6 @@
 "use client";
 
-import { DynamicTable, TableAction } from '@/components/DynamicTable';
+import { ColumnConfig, DynamicTable, TableAction } from '@/components/DynamicTable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Edit, Trash2 } from 'lucide-react';
 
@@ -128,209 +128,197 @@ const sampleData = [
   }
 ];
 
-const tableConfig = {
-  columns: [
-    {
-      key: 'name',
-      label: 'Name',
-      type: 'custom' as const,
-      render: (row: Record<string, unknown>) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium text-primary">
-              {String(row.name).split(' ').map((n: string) => n[0]).join('')}
-            </span>
-          </div>
-          <span className="font-medium">{String(row.name)}</span>
+const tableConfig: ColumnConfig[] = [
+  {
+    key: 'name',
+    label: 'Name',
+    type: 'custom',
+    render: (row: Record<string, unknown>) => (
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+          <span className="text-sm font-medium text-primary">
+            {String(row.name).split(' ').map((n: string) => n[0]).join('')}
+          </span>
         </div>
-      )
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      type: 'text' as const,
-      field: 'email'
-    },
-    {
-      key: 'phone',
-      label: 'Phone',
-      type: 'text' as const,
-      field: 'phone'
-    },
-    {
-      key: 'role',
-      label: 'Role',
-      type: 'tag' as const,
-      field: 'role',
-      tagColors: {
-        'Admin': 'bg-red-100 text-red-800',
-        'Moderator': 'bg-yellow-100 text-yellow-800',
-        'User': 'bg-green-100 text-green-800'
-      } as Record<string, string>
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'tag' as const,
-      field: 'status',
-      tagColors: {
-        'Active': 'bg-green-100 text-green-800',
-        'Inactive': 'bg-gray-100 text-gray-800'
-      } as Record<string, string>
-    },
-    {
-      key: 'department',
-      label: 'Department',
-      type: 'text' as const,
-      field: 'department'
-    },
-    {
-      key: 'salary',
-      label: 'Salary',
-      type: 'custom' as const,
-      render: (row: Record<string, unknown>) => (
-        <span className="font-mono">
-          ${Number(row.salary).toLocaleString()}
-        </span>
-      )
-    },
-    {
-      key: 'joinDate',
-      label: 'Join Date',
-      type: 'custom' as const,
-      render: (row: Record<string, unknown>) => new Date(String(row.joinDate)).toLocaleDateString()
-    },
-    {
-      key: 'location',
-      label: 'Location',
-      type: 'text' as const,
-      field: 'location'
-    },
-    {
-      key: 'manager',
-      label: 'Manager',
-      type: 'text' as const,
-      field: 'manager'
-    },
-    {
-      key: 'teamSize',
-      label: 'Team Size',
-      type: 'custom' as const,
-      render: (row: Record<string, unknown>) => (
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-          {String(row.teamSize)}
-        </span>
-      )
-    },
-    {
-      key: 'lastLogin',
-      label: 'Last Login',
-      type: 'custom' as const,
-      render: (row: Record<string, unknown>) => new Date(String(row.lastLogin)).toLocaleDateString()
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      type: 'actions' as const,
-      width: '200px',
-      align: 'center' as const,
-      actions: [
-        {
-          label: 'Edit',
-          icon: <Edit className="h-4 w-4" />,
-          onClick: (row: Record<string, unknown>) => {
-            console.log('Edit user:', row);
-            alert(`Edit user: ${row.name}`);
-          },
-          variant: 'outline' as const
+        <span className="font-medium">{String(row.name)}</span>
+      </div>
+    )
+  },
+  {
+    key: 'email',
+    label: 'Email',
+    type: 'text',
+    field: 'email'
+  },
+  {
+    key: 'phone',
+    label: 'Phone',
+    type: 'text',
+    field: 'phone'
+  },
+  {
+    key: 'role',
+    label: 'Role',
+    type: 'tag',
+    field: 'role',
+    tagColors: {
+      'Admin': 'bg-red-100 text-red-800',
+      'Moderator': 'bg-yellow-100 text-yellow-800',
+      'User': 'bg-green-100 text-green-800'
+    }
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'tag',
+    field: 'status',
+    tagColors: {
+      'Active': 'bg-green-100 text-green-800',
+      'Inactive': 'bg-gray-100 text-gray-800'
+    }
+  },
+  {
+    key: 'department',
+    label: 'Department',
+    type: 'text',
+    field: 'department'
+  },
+  {
+    key: 'salary',
+    label: 'Salary',
+    type: 'custom',
+    render: (row: Record<string, unknown>) => (
+      <span className="font-mono">
+        ${Number(row.salary).toLocaleString()}
+      </span>
+    )
+  },
+  {
+    key: 'joinDate',
+    label: 'Join Date',
+    type: 'custom',
+    render: (row: Record<string, unknown>) => new Date(String(row.joinDate)).toLocaleDateString()
+  },
+  {
+    key: 'location',
+    label: 'Location',
+    type: 'text',
+    field: 'location'
+  },
+  {
+    key: 'manager',
+    label: 'Manager',
+    type: 'text',
+    field: 'manager'
+  },
+  {
+    key: 'teamSize',
+    label: 'Team Size',
+    type: 'custom',
+    render: (row: Record<string, unknown>) => (
+      <span className="flex items-center gap-1">
+        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+        {String(row.teamSize)}
+      </span>
+    )
+  },
+  {
+    key: 'lastLogin',
+    label: 'Last Login',
+    type: 'custom',
+    render: (row: Record<string, unknown>) => new Date(String(row.lastLogin)).toLocaleDateString()
+  },
+  {
+    key: 'actions',
+    label: 'Actions',
+    type: 'actions',
+    width: '200px',
+    align: 'center',
+    actions: [
+      {
+        label: 'Edit',
+        icon: <Edit className="h-4 w-4" />,
+        onClick: (row: Record<string, unknown>) => {
+          console.log('Edit user:', row);
+          alert(`Edit user: ${row.name}`);
         },
-        {
-          label: 'Delete',
-          icon: <Trash2 className="h-4 w-4" />,
-          onClick: (row: Record<string, unknown>) => {
-            console.log('Delete user:', row);
-            if (confirm(`Are you sure you want to delete ${row.name}?`)) {
-              alert(`Deleted user: ${row.name}`);
-            }
-          },
-          variant: 'destructive' as const
-        }
-      ]
-    }
-  ],
-  data: sampleData,
-  filters: [
-    {
-      key: 'department',
-      label: 'Department',
-      type: 'select' as const,
-      options: [
-        { label: 'All Departments', value: 'all' },
-        { label: 'Engineering', value: 'Engineering' },
-        { label: 'Marketing', value: 'Marketing' },
-        { label: 'Support', value: 'Support' },
-        { label: 'Sales', value: 'Sales' },
-        { label: 'HR', value: 'HR' }
-      ]
-    },
-    {
-      key: 'role',
-      label: 'Role',
-      type: 'select' as const,
-      options: [
-        { label: 'All Roles', value: 'all' },
-        { label: 'Admin', value: 'Admin' },
-        { label: 'Moderator', value: 'Moderator' },
-        { label: 'User', value: 'User' }
-      ]
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'select' as const,
-      options: [
-        { label: 'All Status', value: 'all' },
-        { label: 'Active', value: 'Active' },
-        { label: 'Inactive', value: 'Inactive' }
-      ]
-    },
-    {
-      key: 'salaryRange',
-      label: 'Salary Range',
-      type: 'select' as const,
-      options: [
-        { label: 'All Salaries', value: 'all' },
-        { label: 'Under $70k', value: 'under-70k' },
-        { label: '$70k - $85k', value: '70k-85k' },
-        { label: '$85k - $100k', value: '85k-100k' },
-        { label: 'Over $100k', value: 'over-100k' }
-      ]
-    }
-  ],
-  sortOptions: {
-    'name-asc': 'Name (A-Z)',
-    'name-desc': 'Name (Z-A)',
-    'email-asc': 'Email (A-Z)',
-    'email-desc': 'Email (Z-A)',
-    'salary-asc': 'Salary (Low to High)',
-    'salary-desc': 'Salary (High to Low)',
-    'joinDate-asc': 'Join Date (Oldest)',
-    'joinDate-desc': 'Join Date (Newest)',
-    'lastLogin-asc': 'Last Login (Oldest)',
-    'lastLogin-desc': 'Last Login (Newest)'
-  },
-  searchable: true,
-  filterable: true,
-  sortable: true,
-  pagination: {
-    pageSize: 10,
-    showSizeChanger: true,
-    showQuickJumper: true
-  },
-  onAction: (action: TableAction) => {
-    console.log('Table action:', action);
+        variant: 'outline'
+      },
+      {
+        label: 'Delete',
+        icon: <Trash2 className="h-4 w-4" />,
+        onClick: (row: Record<string, unknown>) => {
+          console.log('Delete user:', row);
+          if (confirm(`Are you sure you want to delete ${row.name}?`)) {
+            alert(`Deleted user: ${row.name}`);
+          }
+        },
+        variant: 'destructive'
+      }
+    ]
   }
+];
+
+const filters = [
+  {
+    key: 'department',
+    label: 'Department',
+    type: 'select' as const,
+    options: [
+      { label: 'All Departments', value: 'all' },
+      { label: 'Engineering', value: 'Engineering' },
+      { label: 'Marketing', value: 'Marketing' },
+      { label: 'Support', value: 'Support' },
+      { label: 'Sales', value: 'Sales' },
+      { label: 'HR', value: 'HR' }
+    ]
+  },
+  {
+    key: 'role',
+    label: 'Role',
+    type: 'select' as const,
+    options: [
+      { label: 'All Roles', value: 'all' },
+      { label: 'Admin', value: 'Admin' },
+      { label: 'Moderator', value: 'Moderator' },
+      { label: 'User', value: 'User' }
+    ]
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    type: 'select' as const,
+    options: [
+      { label: 'All Status', value: 'all' },
+      { label: 'Active', value: 'Active' },
+      { label: 'Inactive', value: 'Inactive' }
+    ]
+  },
+  {
+    key: 'salaryRange',
+    label: 'Salary Range',
+    type: 'select' as const,
+    options: [
+      { label: 'All Salaries', value: 'all' },
+      { label: 'Under $70k', value: 'under-70k' },
+      { label: '$70k - $85k', value: '70k-85k' },
+      { label: '$85k - $100k', value: '85k-100k' },
+      { label: 'Over $100k', value: 'over-100k' }
+    ]
+  }
+];
+
+const sortOptions = {
+  'name-asc': 'Name (A-Z)',
+  'name-desc': 'Name (Z-A)',
+  'email-asc': 'Email (A-Z)',
+  'email-desc': 'Email (Z-A)',
+  'salary-asc': 'Salary (Low to High)',
+  'salary-desc': 'Salary (High to Low)',
+  'joinDate-asc': 'Join Date (Oldest)',
+  'joinDate-desc': 'Join Date (Newest)',
+  'lastLogin-asc': 'Last Login (Oldest)',
+  'lastLogin-desc': 'Last Login (Newest)'
 };
 
 export default function TableDemoPage() {
@@ -431,7 +419,22 @@ export default function TableDemoPage() {
             A comprehensive example showing user data with various column types and interactions
           </p>
         </div>
-        <DynamicTable {...tableConfig} />
+        <Card className="w-full">
+          <CardContent>
+            <DynamicTable
+              data={sampleData}
+              columns={tableConfig}
+              filters={filters}
+              sortOptions={sortOptions}
+              searchable={true}
+              filterable={true}
+              sortable={true}
+              onAction={(action: TableAction) => {
+                console.log('Table action:', action);
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="bg-muted/30 rounded-lg p-6">
