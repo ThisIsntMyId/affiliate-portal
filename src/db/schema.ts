@@ -107,14 +107,25 @@ export const referrers = pgTable('referrers', {
 
 export const campaigns = pgTable('campaigns', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).notNull().unique(),
+    code: varchar('code', { length: 50 }).unique(),
     
     brandId: integer('brand_id').notNull().references(() => brands.id),
     
     title: varchar('title', { length: 255 }).notNull(),
     description: text('description'),
+
+    terms: text('terms'),
+    image: varchar('image', { length: 500 }),
+    status: varchar('status', { length: 50 }).notNull().default('active'),
+    link: varchar('link', { length: 500 }),
+
+    isPrivate: boolean('is_private').notNull().default(false),
+    tags: jsonb('tags'),
+
+    cookieDuration: integer('cookie_duration').notNull().default(30),
+    utmSource: varchar('utm_source', { length: 255 }),
+    utmCampaign: varchar('utm_campaign', { length: 255 }),
     
-    isActive: boolean('is_active').notNull().default(true),
     settings: jsonb('settings'),
     
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -125,7 +136,7 @@ export const campaigns = pgTable('campaigns', {
 
 export const commissionRates = pgTable('commission_rates', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).notNull().unique(),
+    code: varchar('code', { length: 50 }).unique(),
 
     campaignId: integer('campaign_id').notNull().references(() => campaigns.id),
     
@@ -133,6 +144,8 @@ export const commissionRates = pgTable('commission_rates', {
     
     type: commissionRateTypeEnum('type').notNull(),
     value: decimal('value', { precision: 10, scale: 2 }).notNull(),
+
+    isActive: boolean('is_active').notNull().default(true),
     
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -142,7 +155,7 @@ export const commissionRates = pgTable('commission_rates', {
 
 export const creatives = pgTable('creatives', {
     id: serial('id').primaryKey(),
-    code: varchar('code', { length: 50 }).notNull().unique(),
+    code: varchar('code', { length: 50 }).unique(),
     
     campaignId: integer('campaign_id').notNull().references(() => campaigns.id),
     
