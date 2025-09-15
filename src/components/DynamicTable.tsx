@@ -35,6 +35,10 @@ export interface ColumnConfig {
   width?: string
   align?: 'left' | 'center' | 'right'
 
+  // For image type
+  imageWidth?: string // e.g., '70px', '80px'
+  imageHeight?: string // e.g., '70px', '80px'
+
   // For tag type
   tagColors?: Record<string, string> // { active: 'bg-green-500', inactive: 'bg-red-500' }
   tagLabel?: Record<string, string> // { active: 'Active', inactive: 'Inactive' }
@@ -122,13 +126,22 @@ function renderCell(column: ColumnConfig, row: Record<string, unknown>, index: n
     case 'image':
       const imageSrc = getNestedValue(row, column.field)
       if (!imageSrc || typeof imageSrc !== 'string') return '-'
+      
+      const imageWidth = column.imageWidth || '70px'
+      const imageHeight = column.imageHeight || '70px'
+      
       return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageSrc}
-          alt=""
-          className="w-10 h-10 object-cover rounded"
-        />
+        <div 
+          className="border border-gray-200 rounded-md bg-gray-50 flex items-center justify-center overflow-hidden"
+          style={{ width: imageWidth, height: imageHeight }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageSrc}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
       )
 
     case 'tag':

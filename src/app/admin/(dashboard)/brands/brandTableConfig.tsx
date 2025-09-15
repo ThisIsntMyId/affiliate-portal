@@ -5,6 +5,15 @@ import { getRoute } from '@/app/admin/routes';
 
 export const tableConfig: ColumnConfig[] = [
     {
+        key: 'logo',
+        field: 'logo',
+        label: 'Logo',
+        type: 'image',
+        imageWidth: '70px',
+        imageHeight: '70px',
+        // width: '90px'
+    },
+    {
         key: 'code',
         field: 'code',
         label: 'Code',
