@@ -90,6 +90,7 @@ export interface FormFieldConfig {
   options?: { label: string; value: string }[]
   prefix?: string
   suffix?: string
+  colSpan?: number
   fileConfig?: {
     maxFiles?: number
     multiple?: boolean
@@ -116,6 +117,7 @@ export interface DynamicFormProps {
   loadingText?: string
   submitButtonAlign?: 'full' | 'left' | 'right'
   loading?: boolean
+  gridCols?: number
 }
 
 // Schema Generation
@@ -962,64 +964,87 @@ function RichTextField({ config, form }: { config: FormFieldConfig; form: FormTy
 }
 
 // Form Skeleton Component
-function FormSkeleton({ config }: { config: FormFieldConfig[] }) {
+function FormSkeleton({ config, gridCols = 1 }: { config: FormFieldConfig[], gridCols?: number }) {
   return (
     <div className="space-y-6">
-      {config.map((field, index) => (
-        <div key={field.name || index} className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          
-          {field.type === 'textarea' || field.type === 'richtext' ? (
-            <Skeleton className="h-20 w-full" />
-          ) : field.type === 'checkbox' || field.type === 'switch' ? (
-            <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
-              <Skeleton className="h-4 w-4" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-          ) : field.type === 'checkboxgroup' ? (
-            <div className="space-y-2">
-              {field.options?.slice(0, 3).map((_, optionIndex) => (
-                <div key={optionIndex} className="flex items-center space-x-2">
-                  <Skeleton className="h-4 w-4" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              ))}
-            </div>
-          ) : field.type === 'radio' ? (
-            <div className="space-y-2">
-              {field.options?.slice(0, 3).map((_, optionIndex) => (
-                <div key={optionIndex} className="flex items-center space-x-3 space-y-0">
-                  <Skeleton className="h-4 w-4 rounded-full" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              ))}
-            </div>
-          ) : field.type === 'file' ? (
-            <div className="flex flex-wrap gap-3">
-              {Array.from({ length: field.fileConfig?.maxFiles || 1 }).map((_, index) => (
-                <Skeleton 
-                  key={index} 
-                  className="border border-input rounded-md" 
-                  style={{ 
-                    width: field.fileConfig?.boxSizeWidth || 120, 
-                    height: field.fileConfig?.boxSizeHeight || 120 
-                  }} 
-                />
-              ))}
-            </div>
-          ) : field.type === 'date' ? (
-            <Skeleton className="h-10 w-48" />
-          ) : field.type === 'select' || field.type === 'multiselect' || field.type === 'combobox' ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
-            <Skeleton className="h-10 w-full" />
-          )}
-          
-          {field.description && (
-            <Skeleton className="h-3 w-3/4" />
-          )}
-        </div>
-      ))}
+      <div className={cn(
+        "grid gap-6",
+        gridCols === 1 ? "grid-cols-1" : 
+        gridCols === 2 ? "grid-cols-2" :
+        gridCols === 3 ? "grid-cols-3" :
+        gridCols === 4 ? "grid-cols-4" :
+        gridCols === 5 ? "grid-cols-5" :
+        gridCols === 6 ? "grid-cols-6" :
+        "grid-cols-1"
+      )}>
+        {config.map((field, index) => (
+          <div 
+            key={field.name || index} 
+            className={cn(
+              "space-y-2",
+              field.colSpan === 1 ? "col-span-1" :
+              field.colSpan === 2 ? "col-span-2" :
+              field.colSpan === 3 ? "col-span-3" :
+              field.colSpan === 4 ? "col-span-4" :
+              field.colSpan === 5 ? "col-span-5" :
+              field.colSpan === 6 ? "col-span-6" :
+              "col-span-1"
+            )}
+          >
+            <Skeleton className="h-4 w-24" />
+            
+            {field.type === 'textarea' || field.type === 'richtext' ? (
+              <Skeleton className="h-20 w-full" />
+            ) : field.type === 'checkbox' || field.type === 'switch' ? (
+              <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ) : field.type === 'checkboxgroup' ? (
+              <div className="space-y-2">
+                {field.options?.slice(0, 3).map((_, optionIndex) => (
+                  <div key={optionIndex} className="flex items-center space-x-2">
+                    <Skeleton className="h-4 w-4" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : field.type === 'radio' ? (
+              <div className="space-y-2">
+                {field.options?.slice(0, 3).map((_, optionIndex) => (
+                  <div key={optionIndex} className="flex items-center space-x-3 space-y-0">
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : field.type === 'file' ? (
+              <div className="flex flex-wrap gap-3">
+                {Array.from({ length: field.fileConfig?.maxFiles || 1 }).map((_, index) => (
+                  <Skeleton 
+                    key={index} 
+                    className="border border-input rounded-md" 
+                    style={{ 
+                      width: field.fileConfig?.boxSizeWidth || 120, 
+                      height: field.fileConfig?.boxSizeHeight || 120 
+                    }} 
+                  />
+                ))}
+              </div>
+            ) : field.type === 'date' ? (
+              <Skeleton className="h-10 w-48" />
+            ) : field.type === 'select' || field.type === 'multiselect' || field.type === 'combobox' ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Skeleton className="h-10 w-full" />
+            )}
+            
+            {field.description && (
+              <Skeleton className="h-3 w-3/4" />
+            )}
+          </div>
+        ))}
+      </div>
       
       {/* Submit button skeleton */}
       <div className="flex w-full">
@@ -1030,7 +1055,7 @@ function FormSkeleton({ config }: { config: FormFieldConfig[] }) {
 }
 
 // Main Component
-export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', loading = false }: DynamicFormProps) {
+export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', loading = false, gridCols = 1 }: DynamicFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -1076,7 +1101,7 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
   
   // Show skeleton loader when loading
   if (loading) {
-    return <FormSkeleton config={config} />
+    return <FormSkeleton config={config} gridCols={gridCols} />
   }
 
   const formContent = (
@@ -1089,11 +1114,33 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
       )}
       
       {/* Render form fields */}
-      {config.map((field, index) => (
-        <div key={field.name || index}>
-          {renderField(field, form)}
-        </div>
-      ))}
+      <div className={cn(
+        "grid gap-6",
+        gridCols === 1 ? "grid-cols-1" : 
+        gridCols === 2 ? "grid-cols-2" :
+        gridCols === 3 ? "grid-cols-3" :
+        gridCols === 4 ? "grid-cols-4" :
+        gridCols === 5 ? "grid-cols-5" :
+        gridCols === 6 ? "grid-cols-6" :
+        "grid-cols-1"
+      )}>
+        {config.map((field, index) => (
+          <div 
+            key={field.name || index}
+            className={cn(
+              field.colSpan === 1 ? "col-span-1" :
+              field.colSpan === 2 ? "col-span-2" :
+              field.colSpan === 3 ? "col-span-3" :
+              field.colSpan === 4 ? "col-span-4" :
+              field.colSpan === 5 ? "col-span-5" :
+              field.colSpan === 6 ? "col-span-6" :
+              "col-span-1"
+            )}
+          >
+            {renderField(field, form)}
+          </div>
+        ))}
+      </div>
       
       {/* Submit Button Container */}
       <div className={cn(

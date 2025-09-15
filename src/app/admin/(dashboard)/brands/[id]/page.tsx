@@ -1,5 +1,5 @@
 import { BrandModel } from '@/models/admin/brand.model';
-import { BrandForm } from './BrandForm';
+import { EditBrandForm } from './EditBrandForm';
 import { notFound } from 'next/navigation';
 
 export default async function EditBrandPage({ params }: {params: Promise<{id: string}>}) {
@@ -10,9 +10,6 @@ export default async function EditBrandPage({ params }: {params: Promise<{id: st
   if (isNaN(brandId)) {
     notFound();
   }
-
-  // sleep for 5 sec
-  await new Promise(resolve => setTimeout(resolve, 5000));
 
   const brand = await BrandModel.getBrandById(brandId);
   
@@ -27,7 +24,7 @@ export default async function EditBrandPage({ params }: {params: Promise<{id: st
         <p className="text-gray-600 mt-1">Update brand information and settings</p>
       </div>
 
-      <BrandForm brand={brand} />
+      <EditBrandForm brand={brand} />
     </div>
   );
 }

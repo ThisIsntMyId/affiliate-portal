@@ -6,16 +6,15 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { BrandModel } from '@/models/admin/brand.model';
-import { formConfig } from '../brandFormConfig';
+import { editBrandFormConfig } from '../brandFormConfig';
 
 type BrandDetails = Awaited<ReturnType<typeof BrandModel.getBrandById>>;
 
-export function BrandForm({ brand }: {brand: BrandDetails}) {
+export function EditBrandForm({ brand }: {brand: BrandDetails}) {
   const router = useRouter();
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     const result = await updateBrand(brand.id, values);
-    console.log("🚀 ~ handleSubmit ~ result:", result)
     
     if (result.success) {
       toast.success('Brand updated successfully');
@@ -42,7 +41,7 @@ export function BrandForm({ brand }: {brand: BrandDetails}) {
     <Card className="w-full">
       <CardContent>
         <DynamicForm
-          config={formConfig}
+          config={editBrandFormConfig}
           onSubmit={handleSubmit}
           defaultValues={{
             name: brand.name,
@@ -50,6 +49,7 @@ export function BrandForm({ brand }: {brand: BrandDetails}) {
             website: brand.website || '',
             status: brand.status,
             timezone: brand.timezone,
+            trackingDomain: brand.trackingDomain,
             logo: brand.logo
           }}
           submitText="Update Brand"

@@ -10,9 +10,6 @@ export default async function AdminBrands({
 }: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  // sleep for 5 sec
-  await new Promise(resolve => setTimeout(resolve, 5000));
-
   // 1. Await searchParams before accessing its properties
   const query = await searchParams;
   

@@ -5,11 +5,10 @@ import { createBrand } from '@/actions/admin/brand.action';
 import { BrandStatus } from '@/constants/brand';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
-import { formConfig } from '../brandFormConfig';
+import { createBrandFormConfig } from '../brandFormConfig';
 
 export function CreateBrandForm() {
   const handleSubmit = async (values: Record<string, unknown>) => {
-    console.log("🚀 ~ handleSubmit ~ values:", values)
     const result = await createBrand(values);
     
     if (result.success) {
@@ -35,10 +34,10 @@ export function CreateBrandForm() {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-3xl">
       <CardContent>
         <DynamicForm
-          config={formConfig}
+          config={createBrandFormConfig}
           onSubmit={handleSubmit}
           defaultValues={{
             status: BrandStatus.ACTIVE,
@@ -47,6 +46,7 @@ export function CreateBrandForm() {
           submitText="Create Brand"
           loadingText="Creating..."
           submitButtonAlign="right"
+          gridCols={2}
         />
       </CardContent>
     </Card>
