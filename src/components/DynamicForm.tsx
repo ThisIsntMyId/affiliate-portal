@@ -37,49 +37,6 @@ export class DynamicFormSubmissionError extends Error {
   }
 }
 
-/**
- * Simple File Upload Configuration
- * 
- * Example usage in FormFieldConfig:
- * 
- * // Single image upload with preview
- * {
- *   name: "avatar",
- *   label: "Profile Picture",
- *   type: "file",
- *   fileConfig: {
- *     maxFiles: 1,
- *     multiple: false,
- *     image: true,          // ← Enables image preview
- *     boxSizeWidth: 150,
- *     boxSizeHeight: 150,
- *     accept: ["image/png", "image/jpeg"], // ← Can be string or array
- *     maxSize: 5 * 1024 * 1024,
- *     hint: "Upload PNG or JPEG image up to 5MB" // ← Custom hint
- *   }
- * }
- * 
- * // Multiple file upload with grid layout (no image preview)
- * {
- *   name: "documents",
- *   label: "Supporting Documents",
- *   type: "file",
- *   fileConfig: {
- *     maxFiles: 5,
- *     multiple: true,
- *     image: false,         // ← Shows file initials + name
- *     boxSizeWidth: 100,
- *     boxSizeHeight: 100,
- *     gridColumns: 5,
- *     accept: [".pdf", ".doc", ".docx"], // ← Array format
- *     maxSize: 10 * 1024 * 1024
- *     // hint: omitted - will auto-generate from accept, maxFiles, maxSize
- *   }
- * }
- * 
- * NOTE: Always use type: "file". Image preview is controlled by fileConfig.image
- */
-
 // Types
 export interface FormFieldConfig {
   name: string
@@ -119,6 +76,10 @@ export interface DynamicFormProps {
   submitButtonAlign?: 'full' | 'left' | 'right'
   loading?: boolean
   gridCols?: number
+  secondaryAction?: {
+    label: string
+    onClick: () => Promise<void>
+  }
 }
 
 // Schema Generation
@@ -1082,7 +1043,7 @@ function FormSkeleton({ config, gridCols = 1 }: { config: FormFieldConfig[], gri
 }
 
 // Main Component
-export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', loading = false, gridCols = 1 }: DynamicFormProps) {
+export function DynamicForm({ config, onSubmit, defaultValues, schema, submitText, loadingText, submitButtonAlign = 'full', loading = false, gridCols = 1, secondaryAction }: DynamicFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -1176,6 +1137,12 @@ export function DynamicForm({ config, onSubmit, defaultValues, schema, submitTex
         submitButtonAlign === 'left' && "justify-start",
         submitButtonAlign === 'right' && "justify-end"
       )}>
+        {secondaryAction && (
+          <Button variant="outline" onClick={secondaryAction.onClick} className="cursor-pointer mr-2">
+            {secondaryAction.label}
+          </Button>
+        )}
+
         <Button 
           type="submit" 
           className={`cursor-pointer ${submitButtonAlign === 'full' ? 'w-full' : ''}`}

@@ -6,6 +6,8 @@ import { ActionButton } from "@/components/ActionButton"
 import { AlertBanner } from "@/components/AlertBanner"
 import { ContentCard } from "@/components/ContentCard"
 import { StatusIndicator } from "@/components/StatusIndicator"
+import { ModalForm } from "@/components/ModalForm"
+import { FormFieldConfig } from "@/components/DynamicForm"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,6 +35,49 @@ export default function ReusableComponentsDemoPage() {
 
   const handleRenewal = () => {
     console.log("Renewal initiated!")
+  }
+
+  // ModalForm demo
+  const userFormConfig: FormFieldConfig[] = [
+    {
+      name: "name",
+      label: "Full Name",
+      type: "input",
+      placeholder: "Enter full name",
+      required: true,
+      description: "Enter the user's full name"
+    },
+    {
+      name: "email",
+      label: "Email Address",
+      type: "email",
+      placeholder: "Enter email address",
+      required: true,
+      description: "Enter a valid email address"
+    },
+    {
+      name: "role",
+      label: "Role",
+      type: "select",
+      placeholder: "Select a role",
+      required: true,
+      options: [
+        { label: "Admin", value: "admin" },
+        { label: "User", value: "user" },
+        { label: "Moderator", value: "moderator" }
+      ]
+    },
+    {
+      name: "isActive",
+      label: "Active User",
+      type: "switch",
+      description: "Enable or disable this user account"
+    }
+  ]
+
+  const handleUserSubmit = async (values: Record<string, unknown>) => {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    console.log("🚀 User form submitted:", values)
   }
 
   return (
@@ -396,6 +441,158 @@ export default function ReusableComponentsDemoPage() {
             </div>
           }
         />
+      </section>
+
+      {/* ModalForm Examples */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-bold">ModalForm Component</h2>
+        
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Basic Modal Forms</h3>
+          
+          <div className="flex flex-wrap gap-4">
+            <ModalForm
+              modalTitle="Create New User"
+              modalDescription="Fill in the details to create a new user account."
+              config={userFormConfig}
+              onSubmit={handleUserSubmit}
+              defaultValues={{
+                isActive: true,
+                role: "user"
+              }}
+              saveText="Create User"
+              cancelText="Cancel"
+              loadingText="Creating..."
+            >
+              <User className="h-4 w-4 mr-2" />
+              Create User
+            </ModalForm>
+
+            <ModalForm
+              modalTitle="Edit Profile"
+              modalDescription="Update your profile information."
+              config={userFormConfig}
+              onSubmit={handleUserSubmit}
+              defaultValues={{
+                name: "John Doe",
+                email: "john@example.com",
+                role: "admin",
+                isActive: true
+              }}
+              saveText="Update Profile"
+              cancelText="Cancel"
+              loadingText="Updating..."
+              variant="outline"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Edit Profile
+            </ModalForm>
+
+            <ModalForm
+              modalTitle="Quick Settings"
+              modalDescription="Configure your preferences."
+              config={[
+                {
+                  name: "notifications",
+                  label: "Email Notifications",
+                  type: "switch",
+                  description: "Receive email notifications"
+                },
+                {
+                  name: "theme",
+                  label: "Theme",
+                  type: "select",
+                  options: [
+                    { label: "Light", value: "light" },
+                    { label: "Dark", value: "dark" },
+                    { label: "System", value: "system" }
+                  ]
+                }
+              ]}
+              onSubmit={async (values) => {
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                console.log("Settings updated:", values)
+              }}
+              saveText="Save Settings"
+              cancelText="Cancel"
+              loadingText="Saving..."
+              variant="secondary"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Quick Settings
+            </ModalForm>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Advanced Modal Forms</h3>
+          
+          <div className="flex flex-wrap gap-4">
+            <ModalForm
+              modalTitle="Campaign Configuration"
+              modalDescription="Set up a new marketing campaign with detailed configuration options."
+              config={[
+                {
+                  name: "campaignName",
+                  label: "Campaign Name",
+                  type: "input",
+                  placeholder: "Enter campaign name",
+                  required: true
+                },
+                {
+                  name: "description",
+                  label: "Description",
+                  type: "textarea",
+                  placeholder: "Describe your campaign",
+                  colSpan: 2
+                },
+                {
+                  name: "budget",
+                  label: "Budget",
+                  type: "number",
+                  placeholder: "Enter budget amount",
+                  prefix: "$",
+                  required: true
+                },
+                {
+                  name: "startDate",
+                  label: "Start Date",
+                  type: "date",
+                  required: true
+                },
+                {
+                  name: "channels",
+                  label: "Marketing Channels",
+                  type: "checkboxgroup",
+                  options: [
+                    { label: "Email", value: "email" },
+                    { label: "Social Media", value: "social" },
+                    { label: "Google Ads", value: "google" },
+                    { label: "Facebook Ads", value: "facebook" }
+                  ]
+                },
+                {
+                  name: "isActive",
+                  label: "Active Campaign",
+                  type: "switch",
+                  description: "Enable this campaign immediately"
+                }
+              ]}
+              onSubmit={async (values) => {
+                await new Promise(resolve => setTimeout(resolve, 2500))
+                console.log("Campaign created:", values)
+              }}
+              saveText="Create Campaign"
+              cancelText="Cancel"
+              loadingText="Creating Campaign..."
+              gridCols={2}
+              variant="default"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Create Campaign
+            </ModalForm>
+          </div>
+        </div>
       </section>
 
       <div className="mt-12 border-t pt-8">
