@@ -17,6 +17,8 @@ import Link from 'next/link'
 import { Pagination } from '@/lib/paginate'
 import useDebounce from '@/lib/useDebounce'
 
+import NextImage from 'next/image'
+
 // Types
 export interface PaginationData {
   total: number
@@ -139,12 +141,15 @@ function renderCell(column: ColumnConfig, row: Record<string, unknown>, index: n
           className="border border-gray-200 rounded-md bg-gray-50 flex items-center justify-center overflow-hidden"
           style={{ width: imageWidth, height: imageHeight }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          { }
+          {/* <img
             src={imageSrc}
             alt=""
             className="w-full h-full object-cover"
-          />
+          /> */}
+
+          <NextImage src={imageSrc} alt="table image" className="w-full h-full object-cover" width={Number(imageWidth.replace('px',''))} height={Number(imageHeight.replace('px',''))} />
+
         </div>
       )
 

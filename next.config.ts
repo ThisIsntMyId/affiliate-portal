@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '7mb'
     }
-  }
+  },
+  images: {
+    remotePatterns: [new URL('http://localhost:3030/**'), new URL('https://images.pexels.com/**')],
+  },
 };
 
 export default nextConfig;
