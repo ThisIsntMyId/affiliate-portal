@@ -8,6 +8,7 @@ import { cryptoService } from '@/services/crypto.service';
 import { revalidatePath } from 'next/cache';
 import { generateCode } from '@/lib/generateCode';
 import { publishFile } from '@/lib/fileStorage';
+import { createErrorResponse, createSuccessResponse, createZodValidationErrorResponse, createValidationErrorResponse } from '@/lib/response';
 
 // Validation schemas defined locally in this action file
 // This keeps validation logic close to where it's used and avoids spreading schemas across the app
@@ -57,12 +58,9 @@ export async function createBrand(data: unknown) {
     // Check if brand with email already exists
     const exists = await BrandModel.brandExistsByEmail(validated.email);
     if (exists) {
-      return {
-        success: false,
-        errors: {
-          email: ['A brand with this email already exists']
-        }
-      };
+      return createValidationErrorResponse({
+        email: ['A brand with this email already exists']
+      });
     }
 
     // Hash password
@@ -93,10 +91,7 @@ export async function createBrand(data: unknown) {
     
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: z.flattenError(error).fieldErrors
-      };
+      return createZodValidationErrorResponse(error);
     }
     throw error;
   }
@@ -111,22 +106,16 @@ export async function updateBrand(id: number, data: unknown) {
 
     const brand = await BrandModel.getBrandById(id);
     if (!brand) {
-      return {
-        success: false,
-        error: 'Brand not found'
-      }
+      return createErrorResponse('Brand not found');
     }
     
     // Check if email is being changed and if it already exists
     if (validated.email) {
       const exists = await BrandModel.brandExistsByEmail(validated.email);
       if (exists && exists.id !== id) {
-        return {
-          success: false,
-          errors: {
-            email: ['A brand with this email already exists']
-          }
-        };
+        return createValidationErrorResponse({
+          email: ['A brand with this email already exists']
+        });
       }
     }
 
@@ -151,22 +140,16 @@ export async function updateBrand(id: number, data: unknown) {
     });
 
     if (!updatedBrand) {
-      return {
-        success: false,
-        error: 'Brand update failed'
-      };
+      return createErrorResponse('Brand update failed');
     }
 
     revalidatePath('/admin/brands');
     revalidatePath(`/admin/brands/${id}`);
-    return { success: true, data: updatedBrand };
+    return createSuccessResponse('Brand updated successfully', updatedBrand);
     
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: z.flattenError(error).fieldErrors
-      };
+      return createZodValidationErrorResponse(error);
     }
     throw error;
   }
@@ -180,14 +163,11 @@ export async function getPaginatedBrands(filters: unknown) {
     const validated = brandFiltersSchema.parse(filters);
     
     const result = await BrandModel.getPaginatedBrands(validated);
-    return { success: true, data: result };
+    return createSuccessResponse('Brands retrieved successfully', result);
     
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: z.flattenError(error).fieldErrors
-      };
+      return createZodValidationErrorResponse(error);
     }
     throw error;
   }

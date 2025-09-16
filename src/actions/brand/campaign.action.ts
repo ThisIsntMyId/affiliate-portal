@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/auth/brand';
 import { generateCode } from '@/lib/generateCode';
 import { publishFile } from '@/lib/fileStorage';
+import { createErrorResponse, createSuccessResponse, createZodValidationErrorResponse } from '@/lib/response';
 
 const createCampaignSchema = z.object({
   title: z.string().min(1, 'Campaign title is required').max(255, 'Campaign title must be less than 255 characters'),
@@ -51,7 +52,7 @@ export async function createCampaign(data: unknown) {
     // Get authenticated brand
     const token = await getCurrentUser();
     if (!token) {
-      return { success: false, error: 'Authentication required' };
+      return createErrorResponse('Authentication required');
     }
     const brand = token.user;
 
@@ -88,10 +89,10 @@ export async function createCampaign(data: unknown) {
   } catch (error) {
     console.log("🚀 ~ createCampaign ~ error:", error)
     if (error instanceof z.ZodError) {
-      return { success: false, errors: z.flattenError(error).fieldErrors };
+      return createZodValidationErrorResponse(error);
     }
     
-    return { success: false, error: 'Failed to create campaign' };
+    return createErrorResponse('Failed to create campaign');
   }
 
   console.log(campaign)
@@ -107,14 +108,14 @@ export async function updateCampaign(campaignId: number, data: unknown) {
     // Get authenticated brand
     const token = await getCurrentUser();
     if (!token) {
-      return { success: false, error: 'Authentication required' };
+      return createErrorResponse('Authentication required');
     }
     const brand = token.user;
 
     // Verify campaign belongs to this brand
     const existingCampaign = await CampaignModel.getCampaignByIdAndBrand(campaignId, brand.id);
     if (!existingCampaign) {
-      return { success: false, error: 'Campaign not found' };
+      return createErrorResponse('Campaign not found');
     }
 
     const validatedData = updateCampaignSchema.parse(data);
@@ -148,19 +149,20 @@ export async function updateCampaign(campaignId: number, data: unknown) {
     updatedCampaign = await CampaignModel.updateCampaign(campaignId, campaignData);
 
     if (!updatedCampaign) {
-      return { success: false, error: 'Failed to update campaign' };
+      return createErrorResponse('Failed to update campaign');
     }
   } catch (error) {
     
     if (error instanceof z.ZodError) {
-      return { success: false, errors: z.flattenError(error).fieldErrors };
+      return createZodValidationErrorResponse(error);
     }
     
-    return { success: false, error: 'Failed to update campaign' };
+    return createErrorResponse('Failed to update campaign');
   }
 
   revalidatePath('/brand/campaigns');
   revalidatePath(`/brand/campaigns/${campaignId}`);
-  redirect(`/brand/campaigns/${campaignId}`);
+
+  return createSuccessResponse('Campaign updated successfully', updatedCampaign);
 }
 

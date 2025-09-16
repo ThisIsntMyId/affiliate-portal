@@ -7,6 +7,7 @@ import { config } from '@/config';
 import { AuthModel } from '@/models/admin/auth.model';
 import { createJWTToken } from '@/auth/admin';
 import { getRoute } from '@/app/admin/routes';
+import { createErrorResponse, createZodValidationErrorResponse } from '@/lib/response';
 
 // Validation schema for login
 const loginSchema = z.object({
@@ -23,10 +24,7 @@ export async function login(data: unknown) {
     // Authenticate admin
     const admin = await AuthModel.authenticate(validated);
     if (!admin) {
-      return {
-        success: false,
-        error: 'Invalid email or password',
-      };
+      return createErrorResponse('Invalid email or password');
     }
 
     // Create JWT token
@@ -51,17 +49,11 @@ export async function login(data: unknown) {
     
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: z.flattenError(error).fieldErrors,
-      };
+      return createZodValidationErrorResponse(error);
     }
     
     console.error('Login error:', error);
-    return {
-      success: false,
-      error: 'An error occurred during login',
-    };
+    return createErrorResponse('An error occurred during login');
   }
 }
 

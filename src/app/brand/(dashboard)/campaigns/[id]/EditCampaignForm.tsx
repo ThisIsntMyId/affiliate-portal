@@ -12,7 +12,7 @@ export function EditCampaignForm({ campaign }: {campaign: CampaignDetails}) {
   const handleSubmit = async (values: Record<string, unknown>) => {
     const result = await updateCampaign(campaign!.id, values);
     
-    if (result.success) {
+    if (result.success == true) {
       toast.success('Campaign updated successfully');
       // The updateCampaign action will redirect to the campaign detail page
       // No need to manually redirect here

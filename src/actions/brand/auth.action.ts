@@ -7,6 +7,7 @@ import { config } from '@/config';
 import { AuthModel } from '@/models/brand/auth.model';
 import { createJWTToken } from '@/auth/brand';
 import { getRoute } from '@/app/brand/routes';
+import { createErrorResponse, createSuccessResponse, createZodValidationErrorResponse } from '@/lib/response';
 
 // Validation schema for login
 const loginSchema = z.object({
@@ -23,18 +24,12 @@ export async function login(data: unknown) {
     // Authenticate brand
     const brand = await AuthModel.authenticate(validated);
     if (!brand) {
-      return {
-        success: false,
-        error: 'Invalid email or password',
-      };
+      return createErrorResponse('Invalid email or password');
     }
 
     // Check if brand is active
     if (brand.status !== 'active') {
-      return {
-        success: false,
-        error: 'Your account is inactive. Please contact support.',
-      };
+      return createErrorResponse('Your account is inactive. Please contact support.');
     }
 
     // Create JWT token
@@ -62,17 +57,11 @@ export async function login(data: unknown) {
     
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        errors: z.flattenError(error).fieldErrors,
-      };
+      return createZodValidationErrorResponse(error);
     }
     
     console.error('Login error:', error);
-    return {
-      success: false,
-      error: 'An error occurred during login',
-    };
+    return createErrorResponse('An error occurred during login');
   }
 }
 
@@ -87,5 +76,5 @@ export async function logout() {
 export async function clearSession() {
   const cookieStore = await cookies();
   cookieStore.delete(config.session.cookieName);
-  return { success: true };
+  return createSuccessResponse('Session cleared successfully');
 }
