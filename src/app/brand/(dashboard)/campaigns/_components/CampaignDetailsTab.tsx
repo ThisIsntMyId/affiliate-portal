@@ -11,7 +11,7 @@ interface CampaignDetailsTabProps {
   className?: string;
 }
 
-export function CampaignDetailsTab({ campaignId }: CampaignDetailsTabProps) {
+export function CampaignDetailsTab({ campaignId, className }: CampaignDetailsTabProps) {
   const pathname = usePathname();
 
   if(!pathname) return;
@@ -21,7 +21,7 @@ export function CampaignDetailsTab({ campaignId }: CampaignDetailsTabProps) {
   const isCreativesActive = pathname.includes(`/creatives`);
 
   return (
-    <div className="mb-4">
+    <div className={className}>
       <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
         <Link href={getRoute('brand.campaigns.edit', { id: campaignId })}>
           <Button 

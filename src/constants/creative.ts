@@ -1,6 +1,6 @@
 // Creative file upload configuration
 export const CREATIVE_FILE_UPLOAD_PATH = '/campaigns/{campaignCode}/creatives';
-export const CREATIVE_FILE_MAX_SIZE = 10 * 1024 * 1024; // 10MB (larger than campaign images since creatives can be videos)
+export const CREATIVE_FILE_MAX_SIZE = 5 * 1024 * 1024; // 10MB (larger than campaign images since creatives can be videos)
 export const CREATIVE_FILE_ALLOWED_TYPES = [
   'image/jpeg',
   'image/png', 
@@ -33,6 +33,15 @@ export const CreativeTypeLabels = {
   [CreativeType.TEXT]: 'Text',
   [CreativeType.HTML]: 'HTML',
   [CreativeType.PDF]: 'PDF'
+} as const;
+
+export const CreativeTypeColors = {
+  [CreativeType.IMAGE]: 'bg-gray-100 text-gray-800',
+  [CreativeType.VIDEO]: 'bg-blue-100 text-blue-800',
+  [CreativeType.BANNER]: 'bg-green-100 text-green-800',
+  [CreativeType.TEXT]: 'bg-yellow-100 text-yellow-800',
+  [CreativeType.HTML]: 'bg-purple-100 text-purple-800',
+  [CreativeType.PDF]: 'bg-red-100 text-red-800'
 } as const;
 
 // Type definitions for TypeScript support

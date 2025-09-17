@@ -43,17 +43,19 @@ export default async function CommissionRatesPage({
   return (
     <div className="space-y-6">
 
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Commission Rates</h1>
+        <p className="text-gray-600 mt-1">Manage commission rates for this campaign</p>
+      </div>
+      
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Commission Rates</h1>
-          <p className="text-gray-600 mt-1">Manage commission rates for this campaign</p>
-        </div>
+        <CampaignDetailsTab campaignId={campaignId} />
+        
         <CommissionForm campaignId={parseInt(campaignId)}>
           Add Commission
         </CommissionForm>
       </div>
 
-      <CampaignDetailsTab campaignId={campaignId} />
 
       {/* 4. Pass the entire paginated data object to the client component */}
       <CommissionTable data={commissionRatesPaginated} />

@@ -1,5 +1,5 @@
 import { FormFieldConfig } from "@/components/DynamicForm";
-import { CREATIVE_FILE_MAX_SIZE } from "@/constants/creative";
+import { CREATIVE_FILE_MAX_SIZE, CreativeType, CreativeTypeLabels } from "@/constants/creative";
 
 export const createCreativeFormConfig: FormFieldConfig[] = [
     {
@@ -17,11 +17,12 @@ export const createCreativeFormConfig: FormFieldConfig[] = [
         required: true,
         description: 'Choose the type of creative asset',
         options: [
-            { label: 'Image', value: 'image' },
-            { label: 'Video', value: 'video' },
-            { label: 'Banner', value: 'banner' },
-            { label: 'Text', value: 'text' },
-            { label: 'HTML', value: 'html' }
+            { label: CreativeTypeLabels[CreativeType.IMAGE], value: CreativeType.IMAGE },
+            { label: CreativeTypeLabels[CreativeType.VIDEO], value: CreativeType.VIDEO },
+            { label: CreativeTypeLabels[CreativeType.BANNER], value: CreativeType.BANNER },
+            { label: CreativeTypeLabels[CreativeType.TEXT], value: CreativeType.TEXT },
+            { label: CreativeTypeLabels[CreativeType.HTML], value: CreativeType.HTML },
+            { label: CreativeTypeLabels[CreativeType.PDF], value: CreativeType.PDF }
         ]
     },
     {
@@ -33,6 +34,7 @@ export const createCreativeFormConfig: FormFieldConfig[] = [
         fileConfig: {
             accept: ['image/*', 'video/*', 'application/pdf', 'text/html', 'text/plain'],
             maxSize: CREATIVE_FILE_MAX_SIZE,
+            hint: 'Upload up to 1 file (images, videos, PDFs, HTML) • Size: 5MB'
         }
         // accept: 'image/*,video/*,application/pdf,text/html,text/plain'
     },

@@ -2,6 +2,7 @@ import { CreativeModel, CreativeSortOptions } from '@/models/brand/creative.mode
 import CreativesTable from './CreativesTable';
 import { getCurrentUser } from '@/auth/brand';
 import { CampaignDetailsTab } from '../../../_components/CampaignDetailsTab';
+import { CreativeForm } from './CreativeForm';
 
 export default async function CreativesPage({
   params,
@@ -41,14 +42,20 @@ export default async function CreativesPage({
 
   return (
     <div className="space-y-6">
+
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Creatives</h1>
+        <p className="text-gray-600 mt-1">Manage creative assets for this campaign</p>
+      </div>
+      
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Creatives</h1>
-          <p className="text-gray-600 mt-1">Manage creative assets for this campaign</p>
-        </div>
+        <CampaignDetailsTab campaignId={campaignId} />
+        
+        <CreativeForm campaignId={parseInt(campaignId)}>
+          Add Creative
+        </CreativeForm>
       </div>
 
-      <CampaignDetailsTab campaignId={campaignId} />
 
       {/* 4. Pass the entire paginated data object to the client component */}
       <CreativesTable data={creativesPaginated} />

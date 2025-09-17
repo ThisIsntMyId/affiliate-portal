@@ -41,14 +41,10 @@ export function LoginForm() {
     });
 
     // Handle result
-    if (!result?.success) {
-      if (result?.errors) {
-        // Handle field-specific errors
-        throw new DynamicFormSubmissionError('Validation failed', result.errors);
-      } else if (result?.error) {
-        // Handle general error
-        throw new DynamicFormSubmissionError(result.error);
-      }
+    if (!result.success && result.errors) {
+      throw new DynamicFormSubmissionError('Validation failed', result.errors);
+    } else if (result.success && result.message) {
+      throw new DynamicFormSubmissionError(result.message);
     }
     toast.success('Login successful!');
   };
