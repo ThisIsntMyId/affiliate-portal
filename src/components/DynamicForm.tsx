@@ -64,6 +64,9 @@ export interface FormFieldConfig {
     variant: 'minimal' | 'full'
     placeholder?: string
   }
+  numberConfig?: {
+    step?: number
+  }
 }
 
 export interface DynamicFormProps {
@@ -291,6 +294,7 @@ function NumberField({ config, form }: { config: FormFieldConfig; form: FormType
         <Input
           id={config.name}
           type="number"
+          step={config.numberConfig?.step || 1}
           placeholder={config.placeholder}
           className={cn(
             config.prefix && "pl-12",
@@ -377,13 +381,13 @@ function TagsField({ config, form }: { config: FormFieldConfig; form: FormType }
 
 function SelectField({ config, form }: { config: FormFieldConfig; form: FormType }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full">
       <Label htmlFor={config.name}>{config.label}</Label>
       <Select onValueChange={(value) => form.setValue(config.name, value)} defaultValue={form.watch(config.name) as string}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder={config.placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="w-full">
           {config.options?.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
@@ -426,7 +430,7 @@ function MultiSelectField({ config, form }: { config: FormFieldConfig; form: For
 
 function CheckboxField({ config, form }: { config: FormFieldConfig; form: FormType }) {
   return (
-    <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+    <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md">
       <Checkbox
         id={config.name}
         checked={form.watch(config.name) as boolean}

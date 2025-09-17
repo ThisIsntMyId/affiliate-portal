@@ -13,31 +13,30 @@ import { DynamicForm, FormFieldConfig } from "./DynamicForm";
 import { z } from "zod";
 
 interface ModalFormProps {
-  // Trigger button
   children: React.ReactNode;
   variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
   className?: string;
-  
-  // Modal configuration  
   modalTitle: string;
   modalDescription?: string;
-  
-  // Form configuration
   config: FormFieldConfig[];
-  onSubmit: (values: Record<string, unknown>) => Promise<void>;
   defaultValues?: Record<string, unknown>;
   schema?: z.ZodSchema;
-  
-  // Button labels
+  onSubmit: (values: Record<string, unknown>) => Promise<void>;
+  onOpen?: () => Promise<void>;
+  onClose?: () => void;
   saveText?: string;
   cancelText?: string;
   loadingText?: string;
-  
-  // Other props
   disabled?: boolean;
   gridCols?: number;
 }
 
+/*
+  Note on `formKey`: This state is used to force a complete re-mount of the 
+  DynamicForm component. By changing the `key` prop on the DynamicForm after 
+  asynchronous data has been fetched, we ensure it initializes with the new 
+  `defaultValues`, solving the race condition without modifying DynamicForm itself.
+*/
 export function ModalForm({
   children,
   variant = "default",
@@ -46,6 +45,8 @@ export function ModalForm({
   modalDescription,
   config,
   onSubmit,
+  onOpen,
+  onClose,
   defaultValues,
   schema,
   saveText = "Save",
@@ -55,24 +56,33 @@ export function ModalForm({
   gridCols = 1,
 }: ModalFormProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
   const handleOpen = () => {
-    if (!disabled) {
-      setIsOpen(true);
+    if (disabled) return;
+
+    setIsOpen(true);
+    if (onOpen) {
+      setIsLoading(true);
+      onOpen().finally(() => {
+        setIsLoading(false);
+        setFormKey(prevKey => prevKey + 1);
+      });
     }
   };
 
   const handleClose = () => {
     setIsOpen(false);
+    setFormKey(prevKey => prevKey + 1); 
+    if (onClose) onClose();
   };
 
   const handleSave = async (values: Record<string, unknown>) => {
     try {
       await onSubmit(values);
-      // Close modal on success
       handleClose();
     } catch (error) {
-      // Re-throw error to let DynamicForm handle it
       throw error;
     }
   };
@@ -98,22 +108,22 @@ export function ModalForm({
           </DialogHeader>
           
           <div className="py-4">
-            {/* DynamicForm with secondary action */}
             <DynamicForm
+              key={formKey}
               config={config}
               onSubmit={handleSave}
               defaultValues={defaultValues}
               schema={schema}
               submitText={saveText}
               loadingText={loadingText}
+              loading={isLoading}
               submitButtonAlign="right"
-              loading={false}
               gridCols={gridCols}
               secondaryAction={{
                 label: cancelText,
                 onClick: async () => {
                   handleClose();
-                }
+                },
               }}
             />
           </div>

@@ -110,10 +110,7 @@ export const CampaignModel = {
       .from(campaigns)
       .where(eq(campaigns.id, id));
 
-    const campaign = result[0] || null;
-    if (!campaign) return null;
-
-    return campaign;
+    return result[0] || null;
   },
 
   /**
@@ -125,10 +122,7 @@ export const CampaignModel = {
       .from(campaigns)
       .where(and(eq(campaigns.id, id), eq(campaigns.brandId, brandId)));
 
-    const campaign = result[0] || null;
-    if (!campaign) return null;
-
-    return campaign;
+    return result[0] || null;
   },
 
   /**
@@ -157,10 +151,10 @@ export const CampaignModel = {
       updatedAt: new Date()
     };
 
-    // Convert tags if provided
-    if (data.tags !== undefined) {
-      updateData.tags = data.tags as string[];
-    }
+    // // Convert tags if provided
+    // if (data.tags !== undefined) {
+    //   updateData.tags = data.tags as string[];
+    // }
 
     const [updatedCampaign] = await db
       .update(campaigns)
@@ -168,8 +162,6 @@ export const CampaignModel = {
       .where(eq(campaigns.id, id))
       .returning();
 
-    if (!updatedCampaign) return null;
-
-    return await this.getCampaignById(id);
+    return updatedCampaign;
   },
 };
